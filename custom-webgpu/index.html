@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>
+        Gemma 4 — Custom WebGPU
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="./style.css"
+    >
+</head>
+
+<body>
+<main>
+    <header>
+        <div class="eyebrow">
+            GEMMA 4 / STANDALONE BROWSER RUNTIME
+        </div>
+
+        <h1>
+            Pure WebGPU Generator
+        </h1>
+
+        <p>
+            CORE + W4 PLE distribution · local or remote model source ·
+            custom WGSL kernels · KV cache · KV sharing · streaming text
+        </p>
+    </header>
+
+    <section class="card">
+        <h2>
+            01 / Checkpoint
+        </h2>
+
+        <div class="source-mode-row">
+            <label class="source-mode-label">
+                Model source
+
+                <select id="model-source">
+                    <option value="local">Local files</option>
+                    <option value="remote" selected>Remote / Hugging Face</option>
+                </select>
+            </label>
+        </div>
+
+        <div
+            id="local-source-fields"
+            class="source-fields"
+        >
+            <div class="grid">
+                <label>
+                    Extracted CORE
+
+                    <input
+                        id="core-file"
+                        type="file"
+                        accept=".safetensors"
+                    >
+
+                    <small>webgpu-distribution/core.safetensors</small>
+                </label>
+
+                <label>
+                    Full PLE W4 distribution directory
+
+                    <input
+                        id="ple-shard-directory"
+                        type="file"
+                        webkitdirectory
+                        multiple
+                    >
+
+                    <small>
+                        Select webgpu-distribution/ple-w4/. manifest.json is detected automatically.
+                    </small>
+                </label>
+            </div>
+        </div>
+
+        <div
+            id="remote-source-fields"
+            class="source-fields"
+            hidden
+        >
+            <div class="grid">
+                <label>
+                    Remote model base URL
+
+                    <input
+                        id="remote-base-url"
+                        type="url"
+                        value="https://huggingface.co/NZM0/gemma-4-E2B-it-webgpu-w4/resolve/main"
+                    >
+
+                    <small>
+                        Expected files: core.safetensors and ple-w4/manifest.json + shards.
+                    </small>
+                </label>
+            </div>
+        </div>
+
+        <div class="tokenizer-status">
+            <span>
+                STANDALONE TOKENIZER
+            </span>
+
+            <strong id="tokenizer-status">
+                NOT LOADED
+            </strong>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>
+            02 / Runtime
+        </h2>
+
+        <div class="grid">
+            <label>
+                KV cache capacity
+
+                <input
+                    id="max-seq"
+                    type="number"
+                    min="64"
+                    max="4096"
+                    value="512"
+                >
+            </label>
+
+            <label>
+                LM-head chunk rows
+
+                <input
+                    id="lm-chunk"
+                    type="number"
+                    min="512"
+                    max="16384"
+                    step="512"
+                    value="4096"
+                >
+            </label>
+
+            <label>
+                Max new tokens
+
+                <input
+                    id="max-new-tokens"
+                    type="number"
+                    min="1"
+                    max="512"
+                    value="64"
+                >
+            </label>
+
+            <label class="check-label">
+                Reasoning / thinking
+
+                <input
+                    id="enable-thinking"
+                    type="checkbox"
+                >
+            </label>
+        </div>
+
+        <div class="actions">
+            <button id="load">
+                Preload GPU model
+            </button>
+        </div>
+    </section>
+
+    <section class="metrics">
+        <div class="metric">
+            <span>STATUS</span>
+            <strong id="status">IDLE</strong>
+        </div>
+
+        <div class="metric">
+            <span>PREFILL</span>
+            <strong id="prefill">—</strong>
+        </div>
+
+        <div class="metric">
+            <span>DECODE</span>
+            <strong id="decode">—</strong>
+        </div>
+
+        <div class="metric">
+            <span>TOK / S</span>
+            <strong id="tps">—</strong>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>
+            03 / Prompt
+        </h2>
+
+        <textarea
+            id="prompt"
+            rows="5"
+            spellcheck="false"
+        >Explain quantum computing in one sentence.</textarea>
+
+        <div class="actions">
+            <button
+                id="generate"
+                disabled
+            >
+                Generate
+            </button>
+
+            <button
+                id="stop"
+                disabled
+                class="secondary"
+            >
+                Stop
+            </button>
+        </div>
+    </section>
+
+    <section class="card response-card">
+        <div class="response-head">
+            <h2>
+                04 / Generated Text
+            </h2>
+
+            <span id="token-counter">
+                0 tokens
+            </span>
+        </div>
+
+        <div
+            id="reasoning-wrap"
+            class="reasoning-wrap"
+            hidden
+        >
+            <div class="subhead">REASONING</div>
+            <div
+                id="reasoning"
+                class="response reasoning"
+            ></div>
+        </div>
+
+        <div class="subhead">ANSWER</div>
+
+        <div
+            id="response"
+            class="response"
+        >
+            Model output will stream here.
+        </div>
+    </section>
+
+    <section class="card terminal">
+        <div class="terminal-head">
+            <span>
+                RUNTIME TRACE
+            </span>
+
+            <button
+                id="clear"
+                class="secondary"
+            >
+                clear
+            </button>
+        </div>
+
+        <pre id="output">Prepare tokenizer files, choose Local or Remote, then preload the GPU model.</pre>
+    </section>
+</main>
+
+<script
+    type="module"
+    src="./main.js?v=github-release-1.0.0-rc3"
+></script>
+</body>
+</html>

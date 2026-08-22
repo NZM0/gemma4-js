@@ -1,0 +1,24 @@
+{
+  "format": "gemma4-webgpu-core",
+  "version": "0.1",
+  "source": "/Users/nzm/Desktop/gemma4-js-github-release-v1.0.0-rc3/gemma-4-E2B-it-qat-w4a16-ct/model.safetensors",
+  "analysis": "/Users/nzm/Desktop/gemma4-js-github-release-v1.0.0-rc3/distribution-analysis/distribution-analysis.json",
+  "core_file": "/Users/nzm/Desktop/gemma4-js-github-release-v1.0.0-rc3/webgpu-distribution/core.safetensors",
+  "tensor_count": 1091,
+  "payload_bytes": 1861593990,
+  "file_bytes": 1861735614,
+  "source_header_length": 327624,
+  "core_header_length": 141616,
+  "excluded_other_review": {
+    "lm_head.weight": "duplicate/unused LM head; runtime uses tied model.language_model.embed_tokens.weight",
+    "model.embed_audio.embedding_projection.weight": "audio-only projection",
+    "model.embed_vision.embedding_projection.weight": "vision-only projection"
+  },
+  "verification": {
+    "passed": true,
+    "method": "per-tensor SHA-256",
+    "tensor_count": 1091,
+    "source_header_length": 327624,
+    "core_header_length": 141616
+  }
+}

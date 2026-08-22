@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta
+        name="viewport"
+        content="width=device-width,initial-scale=1"
+    >
+    <title>Gemma 4 — TensorFlow.js WebGL Distribution Reference</title>
+    <link rel="stylesheet" href="./style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+</head>
+
+<body>
+<main>
+    <header>
+        <div class="eyebrow">
+            GEMMA 4 / REFERENCE BACKEND
+        </div>
+        <h1>TensorFlow.js WebGL + W4 PLE Distribution</h1>
+        <p>
+            Browser reference implementation for the official QAT W4A16 checkpoint.
+            TensorFlow.js WebGL reference reading the same CORE + W4 PLE distribution format as Custom WebGPU.
+        </p>
+    </header>
+
+    <section class="card">
+        <h2>01 / Checkpoint</h2>
+        <div class="grid">
+            <label>
+                core.safetensors
+                <input id="core-file" type="file" accept=".safetensors">
+            </label>
+
+            <label>
+                PLE W4 manifest
+                <input id="ple-manifest-file" type="file" accept=".json">
+            </label>
+
+            <label>
+                PLE W4 shard directory
+                <input
+                    id="ple-shard-directory"
+                    type="file"
+                    webkitdirectory
+                    multiple
+                >
+            </label>
+        </div>
+        <div class="status-row">
+            <span>Tokenizer</span>
+            <strong id="tokenizer-status">not loaded</strong>
+        </div>
+        <button id="load">Load TF.js WebGL model</button>
+    </section>
+
+    <section class="card">
+        <h2>02 / Generate</h2>
+        <label>
+            Prompt
+            <textarea id="prompt" rows="4">Explain quantum computing in one sentence.</textarea>
+        </label>
+
+        <div class="grid compact">
+            <label>
+                Max new tokens
+                <input id="max-tokens" type="number" value="2" min="1" max="128">
+            </label>
+            <label>
+                Thinking
+                <select id="thinking">
+                    <option value="false" selected>off</option>
+                    <option value="true">on</option>
+                </select>
+            </label>
+        </div>
+
+        <button id="generate" disabled>Generate</button>
+
+        <div class="response-card">
+            <div class="label">Response</div>
+            <pre id="response"></pre>
+        </div>
+    </section>
+
+    <section class="card terminal">
+        <div class="terminal-head">
+            <span>TRACE</span>
+        </div>
+        <pre id="output">Prepare tokenizer files, select CORE + full W4 PLE shards, then load the TF.js WebGL model.</pre>
+    </section>
+</main>
+
+<script type="module" src="./main.js?v=0.3.1"></script>
+</body>
+</html>

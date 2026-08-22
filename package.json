@@ -1,0 +1,13 @@
+{
+    "name": "gemma4-js-runtimes",
+    "version": "0.3.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "serve": "python3 -m http.server 8000",
+        "generate:node": "node node-reference/src/generate.js"
+    },
+    "dependencies": {
+        "@tensorflow/tfjs": "^4.22.0"
+    }
+}

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Gemma 4 JavaScript Runtimes</title>
+    <style>
+        body{font-family:system-ui,sans-serif;max-width:960px;margin:40px auto;padding:0 20px;line-height:1.5}
+        .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+        a{display:block;border:1px solid #ccc;border-radius:12px;padding:20px;text-decoration:none;color:inherit}
+        code{font-family:ui-monospace,monospace}
+    </style>
+</head>
+<body>
+    <h1>Gemma 4 JavaScript Runtimes</h1>
+    <p>Four independent implementations / execution paths.</p>
+    <div class="grid">
+        <a href="./browser-tfjs-webgl-original/">
+            <strong>TensorFlow.js WebGL / Original</strong><br>
+            Original QAT checkpoint. Research/reference.
+        </a>
+        <a href="./browser-tfjs-webgl-distribution/">
+            <strong>TensorFlow.js WebGL / Distribution</strong><br>
+            CORE + W4 PLE shards. Readable compact reference.
+        </a>
+        <a href="./custom-webgpu/">
+            <strong>Custom WebGPU</strong><br>
+            Fast runtime. Local files or Remote/Hugging Face.
+        </a>
+        <a href="./node-reference/README.md">
+            <strong>Node Reference</strong><br>
+            Dense BF16 TensorFlow.js reference.
+        </a>
+    </div>
+
+    <hr>
+    <p>
+        Model distribution:
+        <a href="https://huggingface.co/NZM0/gemma-4-E2B-it-webgpu-w4">
+            NZM0/gemma-4-E2B-it-webgpu-w4
+        </a>
+    </p>
+</body>
+</html>

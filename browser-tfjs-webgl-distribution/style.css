@@ -1,0 +1,154 @@
+* {
+    box-sizing: border-box;
+}
+
+:root {
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #e8eef7;
+    background: #080b12;
+}
+
+body {
+    margin: 0;
+    background:
+        radial-gradient(circle at 20% 0%, rgba(70, 110, 180, 0.18), transparent 35rem),
+        #080b12;
+}
+
+main {
+    width: min(1040px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 48px 0 80px;
+}
+
+header {
+    margin-bottom: 28px;
+}
+
+.eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    opacity: 0.6;
+}
+
+h1 {
+    margin: 8px 0;
+    font-size: clamp(36px, 6vw, 66px);
+    font-weight: 650;
+}
+
+header p {
+    max-width: 760px;
+    color: #aeb9ca;
+    line-height: 1.7;
+}
+
+.card {
+    margin-top: 18px;
+    padding: 22px;
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 18px;
+    background: rgba(255,255,255,0.035);
+    backdrop-filter: blur(18px);
+}
+
+h2 {
+    margin-top: 0;
+    font-size: 15px;
+    letter-spacing: 0.06em;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.grid.compact {
+    margin-top: 14px;
+}
+
+label {
+    display: grid;
+    gap: 8px;
+    color: #aeb9ca;
+    font-size: 13px;
+}
+
+input,
+textarea,
+select,
+button {
+    width: 100%;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: #101722;
+    color: #edf3ff;
+    padding: 11px 12px;
+    font: inherit;
+}
+
+textarea {
+    resize: vertical;
+}
+
+button {
+    margin-top: 16px;
+    cursor: pointer;
+    font-weight: 650;
+    background: linear-gradient(135deg, #1c355f, #243f72);
+}
+
+button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.status-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 15px;
+    font-size: 13px;
+    color: #aeb9ca;
+}
+
+.response-card {
+    margin-top: 18px;
+    min-height: 100px;
+    padding: 16px;
+    border-radius: 12px;
+    background: #0c111a;
+}
+
+.response-card .label {
+    margin-bottom: 10px;
+    color: #71809a;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+}
+
+.response-card pre,
+.terminal pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    margin: 0;
+    line-height: 1.65;
+}
+
+.terminal {
+    background: #05070b;
+}
+
+.terminal-head {
+    margin-bottom: 12px;
+    color: #728096;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+}
+
+@media (max-width: 720px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}

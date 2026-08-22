@@ -1,0 +1,14 @@
+node_modules/
+.DS_Store
+
+# Local/generated model data
+webgpu-distribution/core.safetensors
+webgpu-distribution/ple-w4/*.bin
+distribution-analysis/*.json
+distribution-analysis/*.csv
+
+# Original model directories
+gemma-4-E2B*/
+
+hf-upload/
+*.safetensors
