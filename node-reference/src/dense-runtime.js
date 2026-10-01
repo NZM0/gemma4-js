@@ -13,20 +13,15 @@ import {
     createRealE2BBlock
 } from "./real-layer-factory.js";
 
-const EMBEDDING_NAME =
-    "model.language_model.embed_tokens.weight";
+const EMBEDDING_NAME = "model.language_model.embed_tokens.weight";
 
-const PLE_TABLE_NAME =
-    "model.language_model.embed_tokens_per_layer.weight";
+const PLE_TABLE_NAME = "model.language_model.embed_tokens_per_layer.weight";
 
-const PLE_PROJECTION_NAME =
-    "model.language_model.per_layer_model_projection.weight";
+const PLE_PROJECTION_NAME = "model.language_model.per_layer_model_projection.weight";
 
-const PLE_NORM_NAME =
-    "model.language_model.per_layer_projection_norm.weight";
+const PLE_NORM_NAME = "model.language_model.per_layer_projection_norm.weight";
 
-const FINAL_NORM_NAME =
-    "model.language_model.norm.weight";
+const FINAL_NORM_NAME = "model.language_model.norm.weight";
 
 const HIDDEN_SIZE = 1536;
 const NUM_LAYERS = 35;
@@ -40,8 +35,7 @@ function rmsNorm(
     eps = 1e-6
 ) {
     return tf.tidy(() => {
-        const meanSquare =
-            x.square()
+        const meanSquare = x.square()
                 .mean(
                     -1,
                     true
@@ -61,35 +55,28 @@ export async function prepareRealInputAndPle(
     reader,
     tokenIds
 ) {
-    const seqLen =
-        tokenIds.length;
+    const seqLen = tokenIds.length;
 
-    const embeddingRows =
-        await reader.readRowsTensor(
+    const embeddingRows = await reader.readRowsTensor(
             EMBEDDING_NAME,
             tokenIds
         );
 
-    const pleRows =
-        await reader.readRowsTensor(
+    const pleRows = await reader.readRowsTensor(
             PLE_TABLE_NAME,
             tokenIds
         );
 
-    const projection =
-        await reader.readTensor(
+    const projection = await reader.readTensor(
             PLE_PROJECTION_NAME
         );
 
-    const projectionNorm =
-        await reader.readTensor(
+    const projectionNorm = await reader.readTensor(
             PLE_NORM_NAME
         );
 
-    const result =
-        tf.tidy(() => {
-            const hidden =
-                embeddingRows
+    const result = tf.tidy(() => {
+            const hidden = embeddingRows
                     .reshape([
                         1,
                         seqLen,
@@ -104,8 +91,7 @@ export async function prepareRealInputAndPle(
             // Checkpoint projection layout is [8960,1536].
             // Use transposeB=true directly so no 55MB transposed
             // parameter needs to be kept.
-            let context =
-                tf.matMul(
+            let context = tf.matMul(
                     hidden,
                     projection,
                     false,
@@ -124,14 +110,12 @@ export async function prepareRealInputAndPle(
                     PLE_DIM
                 ]);
 
-            context =
-                rmsNorm(
+            context = rmsNorm(
                     context,
                     projectionNorm
                 );
 
-            const tokenIdentity =
-                pleRows
+            const tokenIdentity = pleRows
                     .reshape([
                         1,
                         seqLen,
@@ -144,8 +128,7 @@ export async function prepareRealInputAndPle(
                         )
                     );
 
-            const perLayerInputs =
-                context
+            const perLayerInputs = context
                     .add(
                         tokenIdentity
                     )
@@ -179,8 +162,7 @@ export async function runRealTransformerStack(
         onLayer = null
     } = {}
 ) {
-    let hidden =
-        hiddenInput;
+    let hidden = hiddenInput;
 
     const sharedKvStates = {
         sliding_attention:
@@ -195,8 +177,7 @@ export async function runRealTransformerStack(
         layerIndex < NUM_LAYERS;
         layerIndex++
     ) {
-        const block =
-            createRealE2BBlock(
+        const block = createRealE2BBlock(
                 layerIndex
             );
 
@@ -210,8 +191,7 @@ export async function runRealTransformerStack(
             }
         );
 
-        const ple =
-            tf.tidy(() => {
+        const ple = tf.tidy(() => {
                 return perLayerInputs
                     .slice(
                         [
@@ -230,13 +210,11 @@ export async function runRealTransformerStack(
                     .squeeze([2]);
             });
 
-        const spec =
-            getRealLayerSpec(
+        const spec = getRealLayerSpec(
                 layerIndex
             );
 
-        const sharedKvState =
-            spec.isKvSharedLayer
+        const sharedKvState = spec.isKvSharedLayer
                 ? sharedKvStates[
                     spec.attentionType
                 ]
@@ -251,8 +229,7 @@ export async function runRealTransformerStack(
             );
         }
 
-        const result =
-            block.applyWithSharedKv(
+        const result = block.applyWithSharedKv(
                 hidden,
                 positions,
                 ple,
@@ -266,8 +243,7 @@ export async function runRealTransformerStack(
         if (
             spec.captureSharedKv
         ) {
-            const previous =
-                sharedKvStates[
+            const previous = sharedKvStates[
                     spec.attentionType
                 ];
 
@@ -277,8 +253,7 @@ export async function runRealTransformerStack(
 
             sharedKvStates[
                 spec.attentionType
-            ] =
-                result.kvState;
+            ] = result.kvState;
         }
 
         if (hidden !== hiddenInput) {
@@ -288,8 +263,7 @@ export async function runRealTransformerStack(
         ple.dispose();
         block.dispose();
 
-        hidden =
-            result.output;
+        hidden = result.output;
 
         if (onLayer) {
             await onLayer(
@@ -319,13 +293,11 @@ export async function applyRealFinalNorm(
     reader,
     hidden
 ) {
-    const scale =
-        await reader.readTensor(
+    const scale = await reader.readTensor(
             FINAL_NORM_NAME
         );
 
-    const output =
-        rmsNorm(
+    const output = rmsNorm(
             hidden,
             scale
         );
@@ -385,23 +357,19 @@ export async function streamFullVocabularyLogits(
         start < VOCAB_SIZE;
         start += chunkRows
     ) {
-        const count =
-            Math.min(
+        const count = Math.min(
                 chunkRows,
                 VOCAB_SIZE - start
             );
 
-        const rows =
-            await reader.readRowRangeTensor(
+        const rows = await reader.readRowRangeTensor(
                 EMBEDDING_NAME,
                 start,
                 count
             );
 
-        const logits =
-            tf.tidy(() => {
-                const raw =
-                    tf.matMul(
+        const logits = tf.tidy(() => {
+                const raw = tf.matMul(
                         finalHidden,
                         rows,
                         false,
@@ -413,8 +381,7 @@ export async function streamFullVocabularyLogits(
                 );
             });
 
-        const values =
-            await logits.data();
+        const values = await logits.data();
 
         if (onChunk) {
             await onChunk({
@@ -463,8 +430,7 @@ export async function selectNextTokenFromLastPosition(
         );
     }
 
-    const lastHidden =
-        tf.tidy(() => {
+    const lastHidden = tf.tidy(() => {
             return finalHidden
                 .slice(
                     [0, seqLen - 1, 0],
@@ -476,8 +442,7 @@ export async function selectNextTokenFromLastPosition(
         });
 
     // Keep only the best candidates globally while scanning chunks.
-    const candidateCount =
-        Math.max(
+    const candidateCount = Math.max(
             1,
             Math.min(
                 Number.isInteger(topK)
@@ -495,23 +460,19 @@ export async function selectNextTokenFromLastPosition(
             start < VOCAB_SIZE;
             start += chunkRows
         ) {
-            const count =
-                Math.min(
+            const count = Math.min(
                     chunkRows,
                     VOCAB_SIZE - start
                 );
 
-            const rows =
-                await reader.readRowRangeTensor(
+            const rows = await reader.readRowRangeTensor(
                     EMBEDDING_NAME,
                     start,
                     count
                 );
 
-            const logits =
-                tf.tidy(() => {
-                    const raw =
-                        tf.matMul(
+            const logits = tf.tidy(() => {
+                    const raw = tf.matMul(
                             lastHidden,
                             rows,
                             false,
@@ -524,8 +485,7 @@ export async function selectNextTokenFromLastPosition(
                     );
                 });
 
-            const values =
-                await logits.data();
+            const values = await logits.data();
 
             for (
                 let j = 0;
@@ -548,8 +508,7 @@ export async function selectNextTokenFromLastPosition(
                 candidates.length >
                 candidateCount
             ) {
-                candidates.length =
-                    candidateCount;
+                candidates.length = candidateCount;
             }
 
             rows.dispose();
@@ -575,20 +534,17 @@ export async function selectNextTokenFromLastPosition(
         };
     }
 
-    const scaled =
-        candidates.map(
+    const scaled = candidates.map(
             item =>
                 item.logit /
                 temperature
         );
 
-    const maxLogit =
-        Math.max(
+    const maxLogit = Math.max(
             ...scaled
         );
 
-    const weights =
-        scaled.map(
+    const weights = scaled.map(
             value =>
                 Math.exp(
                     value -
@@ -596,19 +552,16 @@ export async function selectNextTokenFromLastPosition(
                 )
         );
 
-    const total =
-        weights.reduce(
+    const total = weights.reduce(
             (sum, value) =>
                 sum + value,
             0
         );
 
-    let threshold =
-        random() *
+    let threshold = random() *
         total;
 
-    let selected =
-        candidates[
+    let selected = candidates[
             candidates.length - 1
         ];
 
@@ -623,8 +576,7 @@ export async function selectNextTokenFromLastPosition(
         if (
             threshold <= 0
         ) {
-            selected =
-                candidates[i];
+            selected = candidates[i];
 
             break;
         }

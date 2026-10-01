@@ -19,8 +19,7 @@ export class LocalPleW4ShardReader {
             Array.from(shardFiles).map(file => [file.name, file])
         );
 
-        const missing =
-            this.shards
+        const missing = this.shards
                 .map(x => x.file)
                 .filter(name => !this.fileByName.has(name));
 
@@ -32,8 +31,7 @@ export class LocalPleW4ShardReader {
     }
 
     static async fromFiles(manifestFile, shardFiles) {
-        const manifest =
-            JSON.parse(
+        const manifest = JSON.parse(
                 await manifestFile.text()
             );
 
@@ -74,14 +72,12 @@ export class LocalPleW4ShardReader {
             );
         }
 
-        const shardIndex =
-            Math.floor(
+        const shardIndex = Math.floor(
                 id /
                 this.rowsPerShard
             );
 
-        const shard =
-            this.shards[
+        const shard = this.shards[
                 shardIndex
             ];
 
@@ -96,8 +92,7 @@ export class LocalPleW4ShardReader {
     }
 
     async readRows(ids) {
-        const output =
-            new Float32Array(
+        const output = new Float32Array(
                 ids.length *
                 this.width
             );
@@ -111,25 +106,21 @@ export class LocalPleW4ShardReader {
                     const {
                         shard,
                         localRow,
-                    } =
-                        this._location(
+                    } = this._location(
                             tokenId
                         );
 
-                    const file =
-                        this.fileByName.get(
+                    const file = this.fileByName.get(
                             shard.file
                         );
 
-                    const packedStart =
-                        Number(
+                    const packedStart = Number(
                             shard.packed_offset
                         ) +
                         localRow *
                         this.packedRowBytes;
 
-                    const scaleStart =
-                        Number(
+                    const scaleStart = Number(
                             shard.scales_offset
                         ) +
                         localRow *
@@ -138,8 +129,7 @@ export class LocalPleW4ShardReader {
                     const [
                         packedBuffer,
                         scaleBuffer,
-                    ] =
-                        await Promise.all([
+                    ] = await Promise.all([
                             file
                                 .slice(
                                     packedStart,
@@ -157,18 +147,15 @@ export class LocalPleW4ShardReader {
                                 .arrayBuffer(),
                         ]);
 
-                    const packed =
-                        new Uint8Array(
+                    const packed = new Uint8Array(
                             packedBuffer
                         );
 
-                    const scaleBits =
-                        new Uint16Array(
+                    const scaleBits = new Uint16Array(
                             scaleBuffer
                         );
 
-                    const base =
-                        outputRow *
+                    const base = outputRow *
                         this.width;
 
                     for (
@@ -176,23 +163,19 @@ export class LocalPleW4ShardReader {
                         i < this.width;
                         ++i
                     ) {
-                        const byte =
-                            packed[
+                        const byte = packed[
                                 i >> 1
                             ];
 
-                        const nibble =
-                            (i & 1) === 0
+                        const nibble = (i & 1) === 0
                                 ? byte & 0x0f
                                 : byte >> 4;
 
-                        const q =
-                            nibble >= 8
+                        const q = nibble >= 8
                                 ? nibble - 16
                                 : nibble;
 
-                        const scale =
-                            bf16BitsToFloat32(
+                        const scale = bf16BitsToFloat32(
                                 scaleBits[
                                     Math.floor(
                                         i /
@@ -204,8 +187,7 @@ export class LocalPleW4ShardReader {
                         output[
                             base +
                             i
-                        ] =
-                            q *
+                        ] = q *
                             scale;
                     }
                 }

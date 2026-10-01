@@ -41,13 +41,11 @@ function finiteStats(a) {
         sumSq += v * v;
     }
 
-    const mean =
-        finite > 0
+    const mean = finite > 0
             ? sum / finite
             : NaN;
 
-    const variance =
-        finite > 0
+    const variance = finite > 0
             ? Math.max(
                 0,
                 sumSq / finite -
@@ -215,14 +213,12 @@ export class Gemma4WebGPU {
     }
 
     async inputBuffers(tokenIds) {
-        const embedPromise =
-            this.reader.bf16Rows(
+        const embedPromise = this.reader.bf16Rows(
                 "model.language_model.embed_tokens.weight",
                 tokenIds
             );
 
-        const pleGpuPromise =
-            (typeof this.reader.pleRowsToGpu === "function")
+        const pleGpuPromise = (typeof this.reader.pleRowsToGpu === "function")
                 ? this.reader.pleRowsToGpu(this.device,tokenIds)
                 : this.reader
                     .bf16Rows(
@@ -238,8 +234,7 @@ export class Gemma4WebGPU {
                         )
                     );
 
-        const [embed,ple] =
-            await Promise.all([
+        const [embed,ple] = await Promise.all([
                 embedPromise,
                 pleGpuPromise,
             ]);
@@ -422,15 +417,13 @@ export class Gemma4WebGPU {
         for(const b of garbage)b.destroy();
 
         if (diagnostic) {
-            const hiddenProbe =
-                await readF32(
+            const hiddenProbe = await readF32(
                     this.device,
                     hidden,
                     rows * HIDDEN
                 );
 
-            const pleProbe =
-                await readF32(
+            const pleProbe = await readF32(
                     this.device,
                     perLayer,
                     rows * 35 * PLE
@@ -450,8 +443,7 @@ export class Gemma4WebGPU {
             encoder=this.device.createCommandEncoder();
             garbage=[];
 
-            const stageProbes =
-                diagnostic && layer.i === 1
+            const stageProbes = diagnostic && layer.i === 1
                     ? []
                     : null;
 
@@ -473,15 +465,13 @@ export class Gemma4WebGPU {
                 this.log("[diag layer 01 stages]");
 
                 for (const p of stageProbes) {
-                    const values =
-                        await readF32(
+                    const values = await readF32(
                             this.device,
                             p.buffer,
                             p.count
                         );
 
-                    const stats =
-                        finiteStats(
+                    const stats = finiteStats(
                             values
                         );
 
@@ -505,15 +495,13 @@ export class Gemma4WebGPU {
             for(const b of garbage)b.destroy();
 
             if (diagnostic) {
-                const hiddenValues =
-                    await readF32(
+                const hiddenValues = await readF32(
                         this.device,
                         hidden,
                         rows * HIDDEN
                     );
 
-                const stats =
-                    finiteStats(
+                const stats = finiteStats(
                         hiddenValues
                     );
 
@@ -560,8 +548,7 @@ export class Gemma4WebGPU {
         logits.destroy();
 
         if (diagnostic) {
-            const stats =
-                finiteStats(
+            const stats = finiteStats(
                     out
                 );
 
@@ -595,8 +582,7 @@ export class Gemma4WebGPU {
             diagnostic = false,
         } = {}
     ) {
-        const h =
-            await this.forward(
+        const h = await this.forward(
                 tokenIds,
                 startPos,
                 {
@@ -604,8 +590,7 @@ export class Gemma4WebGPU {
                 }
             );
 
-        const l =
-            await this.logits(
+        const l = await this.logits(
                 h,
                 {
                     diagnostic,
@@ -614,8 +599,7 @@ export class Gemma4WebGPU {
 
         h.destroy();
 
-        const finiteLogits =
-            l.reduce(
+        const finiteLogits = l.reduce(
                 (
                     n,
                     v
@@ -638,8 +622,7 @@ export class Gemma4WebGPU {
             );
         }
 
-        const top10 =
-            topK(
+        const top10 = topK(
                 l,
                 10
             );

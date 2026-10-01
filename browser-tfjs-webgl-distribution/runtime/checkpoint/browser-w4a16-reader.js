@@ -14,13 +14,11 @@ export class BrowserW4A16Reader {
     }
 
     async open() {
-        const prefix =
-            await this.file
+        const prefix = await this.file
                 .slice(0, 8)
                 .arrayBuffer();
 
-        const headerLength =
-            Number(
+        const headerLength = Number(
                 new DataView(prefix)
                     .getBigUint64(
                         0,
@@ -28,16 +26,14 @@ export class BrowserW4A16Reader {
                     )
             );
 
-        const headerBuffer =
-            await this.file
+        const headerBuffer = await this.file
                 .slice(
                     8,
                     8 + headerLength
                 )
                 .arrayBuffer();
 
-        this.header =
-            JSON.parse(
+        this.header = JSON.parse(
                 new TextDecoder(
                     "utf-8"
                 )
@@ -46,13 +42,11 @@ export class BrowserW4A16Reader {
                     )
             );
 
-        this.metadata =
-            this.header.__metadata__
+        this.metadata = this.header.__metadata__
             ??
             {};
 
-        this.dataStart =
-            8 +
+        this.dataStart = 8 +
             headerLength;
 
         return this;
@@ -63,8 +57,7 @@ export class BrowserW4A16Reader {
     }
 
     info(name) {
-        const info =
-            this.header[name];
+        const info = this.header[name];
 
         if (!info) {
             throw new Error(
@@ -76,17 +69,14 @@ export class BrowserW4A16Reader {
     }
 
     async readBytes(name) {
-        const info =
-            this.info(name);
+        const info = this.info(name);
 
         const [
             start,
             end
-        ] =
-            info.data_offsets;
+        ] = info.data_offsets;
 
-        const buffer =
-            await this.file
+        const buffer = await this.file
                 .slice(
                     this.dataStart + start,
                     this.dataStart + end
@@ -103,8 +93,7 @@ export class BrowserW4A16Reader {
         const {
             buffer,
             info,
-        } =
-            await this.readBytes(
+        } = await this.readBytes(
                 name
             );
 
@@ -131,8 +120,7 @@ export class BrowserW4A16Reader {
         const {
             buffer,
             info,
-        } =
-            await this.readBytes(
+        } = await this.readBytes(
                 name
             );
 
@@ -145,13 +133,11 @@ export class BrowserW4A16Reader {
             );
         }
 
-        const view =
-            new DataView(
+        const view = new DataView(
                 buffer
             );
 
-        const values =
-            [];
+        const values = [];
 
         for (
             let offset = 0;
@@ -179,8 +165,7 @@ export class BrowserW4A16Reader {
         const {
             buffer,
             info,
-        } =
-            await this.readBytes(
+        } = await this.readBytes(
                 name
             );
 
@@ -204,13 +189,11 @@ export class BrowserW4A16Reader {
     }
 
     decodeBF16(buffer) {
-        const view =
-            new DataView(
+        const view = new DataView(
                 buffer
             );
 
-        const values =
-            new Float32Array(
+        const values = new Float32Array(
                 buffer.byteLength /
                 2
             );
@@ -220,8 +203,7 @@ export class BrowserW4A16Reader {
             i < values.length;
             i++
         ) {
-            values[i] =
-                bf16ToFloat32(
+            values[i] = bf16ToFloat32(
                     view.getUint16(
                         i * 2,
                         true
@@ -236,8 +218,7 @@ export class BrowserW4A16Reader {
         name,
         ids
     ) {
-        const info =
-            this.info(
+        const info = this.info(
                 name
             );
 
@@ -253,17 +234,13 @@ export class BrowserW4A16Reader {
             );
         }
 
-        const width =
-            info.shape[1];
+        const width = info.shape[1];
 
-        const rowBytes =
-            width * 2;
+        const rowBytes = width * 2;
 
-        const tensorStart =
-            info.data_offsets[0];
+        const tensorStart = info.data_offsets[0];
 
-        const out =
-            new Float32Array(
+        const out = new Float32Array(
                 ids.length *
                 width
             );
@@ -273,23 +250,20 @@ export class BrowserW4A16Reader {
             rowIndex < ids.length;
             rowIndex++
         ) {
-            const id =
-                Number(
+            const id = Number(
                     ids[
                         rowIndex
                     ]
                 );
 
-            const begin =
-                this.dataStart
+            const begin = this.dataStart
                 +
                 tensorStart
                 +
                 id *
                 rowBytes;
 
-            const buffer =
-                await this.file
+            const buffer = await this.file
                     .slice(
                         begin,
                         begin + rowBytes
@@ -320,8 +294,7 @@ export class BrowserW4A16Reader {
         rowStart,
         rowCount
     ) {
-        const info =
-            this.info(
+        const info = this.info(
                 name
             );
 
@@ -337,22 +310,18 @@ export class BrowserW4A16Reader {
             );
         }
 
-        const width =
-            info.shape[1];
+        const width = info.shape[1];
 
-        const rowBytes =
-            width * 2;
+        const rowBytes = width * 2;
 
-        const begin =
-            this.dataStart
+        const begin = this.dataStart
             +
             info.data_offsets[0]
             +
             rowStart *
             rowBytes;
 
-        const buffer =
-            await this.file
+        const buffer = await this.file
                 .slice(
                     begin,
                     begin

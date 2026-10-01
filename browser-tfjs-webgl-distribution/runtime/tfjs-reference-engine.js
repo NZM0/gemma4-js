@@ -1,7 +1,6 @@
 export const TFJS_WEBGL_BUILD = "0.3.0-webgl-distribution";
 
-const tf =
-    globalThis.tf;
+const tf = globalThis.tf;
 
 import {
     BrowserW4A16Reader
@@ -31,8 +30,7 @@ function rms(
 ) {
     return tf.tidy(
         () => {
-            const y =
-                x.mul(
+            const y = x.mul(
                     tf.rsqrt(
                         x.square()
                             .mean(
@@ -58,16 +56,14 @@ function topK(
     logits,
     k = 10
 ) {
-    const best =
-        [];
+    const best = [];
 
     for (
         let i = 0;
         i < logits.length;
         i++
     ) {
-        const value =
-            logits[i];
+        const value = logits[i];
 
         if (
             !Number.isFinite(
@@ -118,67 +114,45 @@ export class TfjsGemma4Backend {
     constructor(
         modelFile,
         {
-            backend =
-                "webgl",
-            maxSeq =
-                512,
-            outputChunkSize =
-                512,
-            lmChunkRows =
-                2048,
-            log =
-                () => {},
-            pleRowProvider =
-                null,
+            backend = "webgl",
+            maxSeq = 512,
+            outputChunkSize = 512,
+            lmChunkRows = 2048,
+            log = () => {},
+            pleRowProvider = null,
         } = {}
     ) {
-        this.modelFile =
-            modelFile;
+        this.modelFile = modelFile;
 
-        this.backend =
-            backend;
+        this.backend = backend;
 
-        this.maxSeq =
-            maxSeq;
+        this.maxSeq = maxSeq;
 
-        this.outputChunkSize =
-            outputChunkSize;
+        this.outputChunkSize = outputChunkSize;
 
-        this.lmChunkRows =
-            lmChunkRows;
+        this.lmChunkRows = lmChunkRows;
 
-        this.log =
-            log;
+        this.log = log;
 
-        this.pleRowProvider =
-            pleRowProvider;
+        this.pleRowProvider = pleRowProvider;
 
-        this.reader =
-            null;
+        this.reader = null;
 
-        this.blocks =
-            [];
+        this.blocks = [];
 
-        this.pleProjection =
-            null;
+        this.pleProjection = null;
 
-        this.pleNorm =
-            null;
+        this.pleNorm = null;
 
-        this.finalNorm =
-            null;
+        this.finalNorm = null;
 
-        this.lmHeadChunks =
-            [];
+        this.lmHeadChunks = [];
 
-        this.layerKvCaches =
-            [];
+        this.layerKvCaches = [];
 
-        this.sharedKvStates =
-            {};
+        this.sharedKvStates = {};
 
-        this.vocab =
-            0;
+        this.vocab = 0;
 
         this.names = {
             embed:
@@ -209,31 +183,26 @@ export class TfjsGemma4Backend {
             `TensorFlow.js active backend: ${tf.getBackend()}`
         );
 
-        this.reader =
-            await new BrowserW4A16Reader(
+        this.reader = await new BrowserW4A16Reader(
                 this.modelFile
             )
                 .open();
 
-        this.vocab =
-            this.reader.info(
+        this.vocab = this.reader.info(
                 this.names.embed
             ).shape[0];
 
-        this.pleProjection =
-            await this.loadTopLevelLinear(
+        this.pleProjection = await this.loadTopLevelLinear(
                 this.names.projBase,
                 1536,
                 35 * 256
             );
 
-        this.pleNorm =
-            await this.tensor(
+        this.pleNorm = await this.tensor(
                 this.names.pleNorm
             );
 
-        this.finalNorm =
-            await this.tensor(
+        this.finalNorm = await this.tensor(
                 this.names.finalNorm
             );
 
@@ -246,8 +215,7 @@ export class TfjsGemma4Backend {
             layerIndex < 35;
             layerIndex++
         ) {
-            const spec =
-                getOfficialW4A16LayerSpec(
+            const spec = getOfficialW4A16LayerSpec(
                     layerIndex
                 );
 
@@ -256,8 +224,7 @@ export class TfjsGemma4Backend {
                 `${spec.full ? "GLOBAL" : "local"}...`
             );
 
-            const block =
-                createOfficialW4A16E2BBlock(
+            const block = createOfficialW4A16E2BBlock(
                     layerIndex,
                     {
                         outputChunkSize:
@@ -276,8 +243,7 @@ export class TfjsGemma4Backend {
             );
         }
 
-        this.layerKvCaches =
-            Array.from(
+        this.layerKvCaches = Array.from(
                 {
                     length:
                         35,
@@ -310,23 +276,20 @@ export class TfjsGemma4Backend {
             start < this.vocab;
             start += this.lmChunkRows
         ) {
-            const count =
-                Math.min(
+            const count = Math.min(
                     this.lmChunkRows,
                     this.vocab -
                     start
                 );
 
-            const rows =
-                await this.reader
+            const rows = await this.reader
                     .readBF16RowRange(
                         this.names.embed,
                         start,
                         count
                     );
 
-            const tensor =
-                tf.tensor2d(
+            const tensor = tf.tensor2d(
                     rows.values,
                     rows.shape,
                     "float32"
@@ -375,8 +338,7 @@ export class TfjsGemma4Backend {
     async tensor(
         name
     ) {
-        const x =
-            await this.reader
+        const x = await this.reader
                 .readBF16Float32(
                     name
                 );
@@ -393,31 +355,26 @@ export class TfjsGemma4Backend {
         inDim,
         outDim
     ) {
-        const packedName =
-            `${base}.weight_packed`;
+        const packedName = `${base}.weight_packed`;
 
-        const denseName =
-            `${base}.weight`;
+        const denseName = `${base}.weight`;
 
         if (
             this.hasTensor(
                 packedName
             )
         ) {
-            const packed =
-                await this.reader
+            const packed = await this.reader
                     .readInt32(
                         packedName
                     );
 
-            const scale =
-                await this.reader
+            const scale = await this.reader
                     .readBF16Float32(
                         `${base}.weight_scale`
                     );
 
-            const linear =
-                new OfficialW4A16Linear(
+            const linear = new OfficialW4A16Linear(
                     inDim,
                     outDim,
                     {
@@ -443,8 +400,7 @@ export class TfjsGemma4Backend {
                 denseName
             )
         ) {
-            const dense =
-                await this.tensor(
+            const dense = await this.tensor(
                     denseName
                 );
 
@@ -473,8 +429,7 @@ export class TfjsGemma4Backend {
         name,
         ids
     ) {
-        const result =
-            await this.reader
+        const result = await this.reader
                 .readBF16Rows(
                     name,
                     ids
@@ -490,17 +445,14 @@ export class TfjsGemma4Backend {
     async buildInputFeatures(
         tokenIds
     ) {
-        const seq =
-            tokenIds.length;
+        const seq = tokenIds.length;
 
-        const emb =
-            await this.rows(
+        const emb = await this.rows(
                 this.names.embed,
                 tokenIds
             );
 
-        const pleRows =
-            this.pleRowProvider
+        const pleRows = this.pleRowProvider
                 ? tf.tensor2d(
                     (
                         await this.pleRowProvider
@@ -519,8 +471,7 @@ export class TfjsGemma4Backend {
                     tokenIds
                 );
 
-        const hidden =
-            tf.tidy(
+        const hidden = tf.tidy(
                 () =>
                     emb
                         .reshape([
@@ -535,11 +486,9 @@ export class TfjsGemma4Backend {
                         )
             );
 
-        const perLayer =
-            tf.tidy(
+        const perLayer = tf.tidy(
                 () => {
-                    const projected =
-                        this.pleProjection
+                    const projected = this.pleProjection
                             .apply(
                                 hidden
                             )
@@ -556,14 +505,12 @@ export class TfjsGemma4Backend {
                                 256,
                             ]);
 
-                    const normalized =
-                        rms(
+                    const normalized = rms(
                             projected,
                             this.pleNorm
                         );
 
-                    const tokenPle =
-                        pleRows
+                    const tokenPle = pleRows
                             .reshape([
                                 1,
                                 seq,
@@ -602,23 +549,19 @@ export class TfjsGemma4Backend {
         tokenIds,
         absoluteStartPosition
     ) {
-        const seq =
-            tokenIds.length;
+        const seq = tokenIds.length;
 
         const {
             hidden:
                 initialHidden,
             perLayer,
-        } =
-            await this.buildInputFeatures(
+        } = await this.buildInputFeatures(
                 tokenIds
             );
 
-        let hidden =
-            initialHidden;
+        let hidden = initialHidden;
 
-        const positions =
-            tf.tensor2d(
+        const positions = tf.tensor2d(
                 [
                     Array.from(
                         {
@@ -646,8 +589,7 @@ export class TfjsGemma4Backend {
                 layerIndex < 35;
                 layerIndex++
             ) {
-                const ple =
-                    tf.tidy(
+                const ple = tf.tidy(
                         () =>
                             perLayer
                                 .slice(
@@ -671,8 +613,7 @@ export class TfjsGemma4Backend {
                                 )
                     );
 
-                const next =
-                    this.blocks[
+                const next = this.blocks[
                         layerIndex
                     ]
                         .apply(
@@ -693,14 +634,12 @@ export class TfjsGemma4Backend {
 
                 hidden.dispose();
 
-                hidden =
-                    next;
+                hidden = next;
 
                 ple.dispose();
             }
 
-            const lastHidden =
-                tf.tidy(
+            const lastHidden = tf.tidy(
                     () =>
                         rms(
                             hidden,
@@ -735,8 +674,7 @@ export class TfjsGemma4Backend {
     async computeTiedHeadLogits(
         lastHidden
     ) {
-        const chunks =
-            [];
+        const chunks = [];
 
         try {
             for (
@@ -744,11 +682,9 @@ export class TfjsGemma4Backend {
                 of
                 this.lmHeadChunks
             ) {
-                const out =
-                    tf.tidy(
+                const out = tf.tidy(
                         () => {
-                            const raw =
-                                tf.matMul(
+                            const raw = tf.matMul(
                                     lastHidden,
                                     item.tensor,
                                     false,
@@ -776,14 +712,12 @@ export class TfjsGemma4Backend {
                 );
             }
 
-            const joined =
-                tf.concat(
+            const joined = tf.concat(
                     chunks,
                     -1
                 );
 
-            const values =
-                await joined.data();
+            const values = await joined.data();
 
             joined.dispose();
 
@@ -805,20 +739,17 @@ export class TfjsGemma4Backend {
         tokenIds,
         startPos
     ) {
-        const hidden =
-            await this.runCachedForward(
+        const hidden = await this.runCachedForward(
                 tokenIds,
                 startPos
             );
 
         try {
-            const logits =
-                await this.computeTiedHeadLogits(
+            const logits = await this.computeTiedHeadLogits(
                     hidden
                 );
 
-            const top10 =
-                topK(
+            const top10 = topK(
                     logits,
                     10
                 );
@@ -855,16 +786,13 @@ export class TfjsGemma4Backend {
             );
         }
 
-        this.sharedKvStates =
-            {};
+        this.sharedKvStates = {};
     }
 
     cacheSummary() {
-        let caches =
-            0;
+        let caches = 0;
 
-        let bytes =
-            0;
+        let bytes = 0;
 
         for (
             const cache
@@ -927,26 +855,22 @@ export class TfjsGemma4Backend {
             block.dispose();
         }
 
-        this.blocks =
-            [];
+        this.blocks = [];
 
         this.pleProjection
             ?.dispose();
 
-        this.pleProjection =
-            null;
+        this.pleProjection = null;
 
         this.pleNorm
             ?.dispose();
 
-        this.pleNorm =
-            null;
+        this.pleNorm = null;
 
         this.finalNorm
             ?.dispose();
 
-        this.finalNorm =
-            null;
+        this.finalNorm = null;
 
         for (
             const item
@@ -956,13 +880,11 @@ export class TfjsGemma4Backend {
             item.tensor.dispose();
         }
 
-        this.lmHeadChunks =
-            [];
+        this.lmHeadChunks = [];
 
         this.reader
             ?.close();
 
-        this.reader =
-            null;
+        this.reader = null;
     }
 }

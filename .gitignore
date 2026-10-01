@@ -1,5 +1,6 @@
 node_modules/
 .DS_Store
+.vscode/
 
 # Local/generated model data
 webgpu-distribution/core.safetensors

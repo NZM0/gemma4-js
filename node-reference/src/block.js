@@ -213,26 +213,20 @@ export class Gemma4Block {
         );
 
         if (this.postAttentionNorm) {
-            attentionOutput =
-                this.postAttentionNorm.apply(attentionOutput);
+            attentionOutput = this.postAttentionNorm.apply(attentionOutput);
         }
 
-        const attentionResidual =
-            attentionOutput.add(x);
+        const attentionResidual = attentionOutput.add(x);
 
-        const preFfw =
-            this.preFfwNorm.apply(attentionResidual);
+        const preFfw = this.preFfwNorm.apply(attentionResidual);
 
-        let ffwOutput =
-            this.mlp.apply(preFfw);
+        let ffwOutput = this.mlp.apply(preFfw);
 
         if (this.postFfwNorm) {
-            ffwOutput =
-                this.postFfwNorm.apply(ffwOutput);
+            ffwOutput = this.postFfwNorm.apply(ffwOutput);
         }
 
-        const ffwResidual =
-            ffwOutput.add(attentionResidual);
+        const ffwResidual = ffwOutput.add(attentionResidual);
 
         let output = ffwResidual;
 
@@ -243,27 +237,20 @@ export class Gemma4Block {
         let pleNormalized = null;
 
         if (this.perLayerInputDim > 0) {
-            pleGate =
-                this.perLayerInputGate.apply(output);
+            pleGate = this.perLayerInputGate.apply(output);
 
-            pleActivated =
-                this.pleActivation.apply(pleGate);
+            pleActivated = this.pleActivation.apply(pleGate);
 
-            pleModulated =
-                pleActivated.mul(perLayerInput);
+            pleModulated = pleActivated.mul(perLayerInput);
 
-            pleProjected =
-                this.perLayerProjection.apply(pleModulated);
+            pleProjected = this.perLayerProjection.apply(pleModulated);
 
-            pleNormalized =
-                this.postPerLayerInputNorm.apply(pleProjected);
+            pleNormalized = this.postPerLayerInputNorm.apply(pleProjected);
 
-            output =
-                output.add(pleNormalized);
+            output = output.add(pleNormalized);
         }
 
-        const scaledOutput =
-            output.mul(this.skipScale);
+        const scaledOutput = output.mul(this.skipScale);
 
         return {
             preAttention,
@@ -287,14 +274,12 @@ export class Gemma4Block {
         perLayerInput
     ) {
         return tf.tidy(() => {
-            const result =
-                this._forward(x, positions, perLayerInput);
+            const result = this._forward(x, positions, perLayerInput);
 
             const kept = {};
 
             for (const [name, tensor] of Object.entries(result)) {
-                kept[name] =
-                    tensor === null ? null : tf.keep(tensor);
+                kept[name] = tensor === null ? null : tf.keep(tensor);
             }
 
             return kept;
@@ -319,12 +304,10 @@ export class Gemma4Block {
         } = {}
     ) {
         return tf.tidy(() => {
-            const preAttention =
-                this.preAttentionNorm
+            const preAttention = this.preAttentionNorm
                     .apply(x);
 
-            const attention =
-                this.attention
+            const attention = this.attention
                     .applyWithSharedKv(
                         preAttention,
                         positions,
@@ -334,31 +317,26 @@ export class Gemma4Block {
                         }
                     );
 
-            let attentionOutput =
-                attention.output;
+            let attentionOutput = attention.output;
 
             if (
                 this.postAttentionNorm
             ) {
-                attentionOutput =
-                    this.postAttentionNorm
+                attentionOutput = this.postAttentionNorm
                         .apply(
                             attentionOutput
                         );
             }
 
-            const attentionResidual =
-                attentionOutput
+            const attentionResidual = attentionOutput
                     .add(x);
 
-            const preFfw =
-                this.preFfwNorm
+            const preFfw = this.preFfwNorm
                     .apply(
                         attentionResidual
                     );
 
-            let ffwOutput =
-                this.mlp
+            let ffwOutput = this.mlp
                     .apply(
                         preFfw
                     );
@@ -366,15 +344,13 @@ export class Gemma4Block {
             if (
                 this.postFfwNorm
             ) {
-                ffwOutput =
-                    this.postFfwNorm
+                ffwOutput = this.postFfwNorm
                         .apply(
                             ffwOutput
                         );
             }
 
-            let output =
-                ffwOutput
+            let output = ffwOutput
                     .add(
                         attentionResidual
                     );
@@ -382,44 +358,37 @@ export class Gemma4Block {
             if (
                 this.perLayerInputDim > 0
             ) {
-                const pleGate =
-                    this.perLayerInputGate
+                const pleGate = this.perLayerInputGate
                         .apply(
                             output
                         );
 
-                const pleActivated =
-                    this.pleActivation
+                const pleActivated = this.pleActivation
                         .apply(
                             pleGate
                         );
 
-                const pleModulated =
-                    pleActivated
+                const pleModulated = pleActivated
                         .mul(
                             perLayerInput
                         );
 
-                const pleProjected =
-                    this.perLayerProjection
+                const pleProjected = this.perLayerProjection
                         .apply(
                             pleModulated
                         );
 
-                const pleNormalized =
-                    this.postPerLayerInputNorm
+                const pleNormalized = this.postPerLayerInputNorm
                         .apply(
                             pleProjected
                         );
 
-                output =
-                    output.add(
+                output = output.add(
                         pleNormalized
                     );
             }
 
-            const scaledOutput =
-                output.mul(
+            const scaledOutput = output.mul(
                     this.skipScale
                 );
 
@@ -442,87 +411,71 @@ export class Gemma4Block {
         pastCache = null
     ) {
         return tf.tidy(() => {
-            const preAttention =
-                this.preAttentionNorm.apply(x);
+            const preAttention = this.preAttentionNorm.apply(x);
 
-            const attentionResult =
-                this.attention.applyWithCache(
+            const attentionResult = this.attention.applyWithCache(
                     preAttention,
                     positions,
                     pastCache
                 );
 
-            let attentionOutput =
-                attentionResult.output;
+            let attentionOutput = attentionResult.output;
 
             if (
                 this.postAttentionNorm
             ) {
-                attentionOutput =
-                    this.postAttentionNorm.apply(
+                attentionOutput = this.postAttentionNorm.apply(
                         attentionOutput
                     );
             }
 
-            const attentionResidual =
-                attentionOutput.add(x);
+            const attentionResidual = attentionOutput.add(x);
 
-            const preFfw =
-                this.preFfwNorm.apply(
+            const preFfw = this.preFfwNorm.apply(
                     attentionResidual
                 );
 
-            let ffwOutput =
-                this.mlp.apply(preFfw);
+            let ffwOutput = this.mlp.apply(preFfw);
 
             if (this.postFfwNorm) {
-                ffwOutput =
-                    this.postFfwNorm.apply(
+                ffwOutput = this.postFfwNorm.apply(
                         ffwOutput
                     );
             }
 
-            let output =
-                ffwOutput.add(
+            let output = ffwOutput.add(
                     attentionResidual
                 );
 
             if (
                 this.perLayerInputDim > 0
             ) {
-                const pleGate =
-                    this.perLayerInputGate.apply(
+                const pleGate = this.perLayerInputGate.apply(
                         output
                     );
 
-                const pleActivated =
-                    this.pleActivation.apply(
+                const pleActivated = this.pleActivation.apply(
                         pleGate
                     );
 
-                const pleModulated =
-                    pleActivated.mul(
+                const pleModulated = pleActivated.mul(
                         perLayerInput
                     );
 
-                const pleProjected =
-                    this.perLayerProjection.apply(
+                const pleProjected = this.perLayerProjection.apply(
                         pleModulated
                     );
 
-                const pleNormalized =
-                    this.postPerLayerInputNorm.apply(
+                const pleNormalized = this.postPerLayerInputNorm.apply(
                         pleProjected
                     );
 
-                output =
-                    output.add(
+                output = output.add(
                         pleNormalized
                     );
             }
 
-            output =
-                output.mul(
+            output = output.mul(
                     this.skipScale
                 );
 

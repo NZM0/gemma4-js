@@ -12,11 +12,9 @@ export function getRealLayerSpec(layerIndex) {
     // Gemma 4 E2B has 20 vertically KV-shared layers.
     // Layer 13 seeds sliding-attention KV and layer 14 seeds
     // full-attention KV. Layers 15..34 reuse those states.
-    const isKvSharedLayer =
-        layerIndex >= 15;
+    const isKvSharedLayer = layerIndex >= 15;
 
-    const captureSharedKv =
-        layerIndex === 13 ||
+    const captureSharedKv = layerIndex === 13 ||
         layerIndex === 14;
 
     return {

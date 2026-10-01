@@ -69,11 +69,9 @@ export class Gemma4MLP {
             const gate = this.gateProj.apply(x);
             const up = this.upProj.apply(x);
 
-            const activatedGate =
-                this.activation.apply(gate);
+            const activatedGate = this.activation.apply(gate);
 
-            const hidden =
-                activatedGate.mul(up);
+            const hidden = activatedGate.mul(up);
 
             return this.downProj.apply(hidden);
         });

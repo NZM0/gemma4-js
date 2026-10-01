@@ -11,88 +11,65 @@ import {
     Gemma4Tokenizer
 } from "./standalone-tokenizer.js?v=0.1.1";
 
-const $ =
-    selector =>
+const $ = selector =>
         document.querySelector(
             selector
         );
 
-const output =
-    $("#output");
+const output = $("#output");
 
-const responseEl =
-    $("#response");
+const responseEl = $("#response");
 
-const reasoningEl =
-    $("#reasoning");
+const reasoningEl = $("#reasoning");
 
-const reasoningWrapEl =
-    $("#reasoning-wrap");
+const reasoningWrapEl = $("#reasoning-wrap");
 
-const statusEl =
-    $("#status");
+const statusEl = $("#status");
 
-const prefillEl =
-    $("#prefill");
+const prefillEl = $("#prefill");
 
-const decodeEl =
-    $("#decode");
+const decodeEl = $("#decode");
 
-const tpsEl =
-    $("#tps");
+const tpsEl = $("#tps");
 
-const tokenizerStatusEl =
-    $("#tokenizer-status");
+const tokenizerStatusEl = $("#tokenizer-status");
 
-const tokenCounterEl =
-    $("#token-counter");
+const tokenCounterEl = $("#token-counter");
 
-const loadBtn =
-    $("#load");
+const loadBtn = $("#load");
 
-const generateBtn =
-    $("#generate");
+const generateBtn = $("#generate");
 
-const stopBtn =
-    $("#stop");
+const stopBtn = $("#stop");
 
-let model =
-    null;
+let model = null;
 
-let tokenizer =
-    null;
+let tokenizer = null;
 
-let reader =
-    null;
+let reader = null;
 
 function syncSourceUi() {
-    const mode =
-        $("#model-source")
+    const mode = $("#model-source")
             ?.value
         ??
         "local";
 
-    const local =
-        $("#local-source-fields");
+    const local = $("#local-source-fields");
 
-    const remote =
-        $("#remote-source-fields");
+    const remote = $("#remote-source-fields");
 
     if (local) {
-        local.hidden =
-            mode !==
+        local.hidden = mode !==
             "local";
     }
 
     if (remote) {
-        remote.hidden =
-            mode !==
+        remote.hidden = mode !==
             "remote";
     }
 }
 
-let stopRequested =
-    false;
+let stopRequested = false;
 
 function log(
     ...items
@@ -104,15 +81,13 @@ function log(
         +
         "\n";
 
-    output.scrollTop =
-        output.scrollHeight;
+    output.scrollTop = output.scrollHeight;
 }
 
 function setStatus(
     value
 ) {
-    statusEl.textContent =
-        value;
+    statusEl.textContent = value;
 }
 
 function fmtBytes(
@@ -159,8 +134,7 @@ function fmtBytes(
 function estimate(
     header
 ) {
-    let q =
-        0;
+    let q = 0;
 
     for (
         const [
@@ -200,13 +174,11 @@ function estimate(
         }
     }
 
-    const emb =
-        header[
+    const emb = header[
             "model.language_model.embed_tokens.weight"
         ];
 
-    const lm =
-        emb
+    const lm = emb
             ? emb.data_offsets[1]
               -
               emb.data_offsets[0]
@@ -229,8 +201,7 @@ async function requestGPU() {
         );
     }
 
-    const adapter =
-        await navigator.gpu
+    const adapter = await navigator.gpu
             .requestAdapter({
                 powerPreference:
                     "high-performance",
@@ -242,8 +213,7 @@ async function requestGPU() {
         );
     }
 
-    const device =
-        await adapter
+    const device = await adapter
             .requestDevice();
 
     device.lost.then(
@@ -258,17 +228,14 @@ async function requestGPU() {
 }
 
 async function loadTokenizer() {
-    tokenizerStatusEl.textContent =
-        "LOADING";
+    tokenizerStatusEl.textContent = "LOADING";
 
-    tokenizer =
-        await Gemma4Tokenizer
+    tokenizer = await Gemma4Tokenizer
             .fromDirectory(
                 "../tokenizer/gemma4"
             );
 
-    tokenizerStatusEl.textContent =
-        "READY";
+    tokenizerStatusEl.textContent = "READY";
 
     log(
         "Standalone tokenizer:",
@@ -283,14 +250,11 @@ function splitReasoningOutput(
     rawText,
     plainText
 ) {
-    const thoughtStart =
-        "<|channel>thought\n";
+    const thoughtStart = "<|channel>thought\n";
 
-    const channelEnd =
-        "<channel|>";
+    const channelEnd = "<channel|>";
 
-    const thoughtIndex =
-        rawText.indexOf(
+    const thoughtIndex = rawText.indexOf(
             thoughtStart
         );
 
@@ -306,13 +270,11 @@ function splitReasoningOutput(
         };
     }
 
-    const bodyStart =
-        thoughtIndex
+    const bodyStart = thoughtIndex
         +
         thoughtStart.length;
 
-    const end =
-        rawText.indexOf(
+    const end = rawText.indexOf(
             channelEnd,
             bodyStart
         );
@@ -331,21 +293,18 @@ function splitReasoningOutput(
         };
     }
 
-    const reasoning =
-        rawText.slice(
+    const reasoning = rawText.slice(
             bodyStart,
             end
         );
 
-    const tailIdsText =
-        rawText.slice(
+    const tailIdsText = rawText.slice(
             end
             +
             channelEnd.length
         );
 
-    const cleanedAnswer =
-        tailIdsText
+    const cleanedAnswer = tailIdsText
             .replace(
                 /^<\|channel>final\n/u,
                 ""
@@ -365,24 +324,18 @@ function splitReasoningOutput(
     };
 }
 
-$("#model-source").onchange =
-    syncSourceUi;
+$("#model-source").onchange = syncSourceUi;
 
 syncSourceUi();
 
-$("#clear").onclick =
-    () => {
-        output.textContent =
-            "";
+$("#clear").onclick = () => {
+        output.textContent = "";
     };
 
-loadBtn.onclick =
-    async () => {
-        loadBtn.disabled =
-            true;
+loadBtn.onclick = async () => {
+        loadBtn.disabled = true;
 
-        generateBtn.disabled =
-            true;
+        generateBtn.disabled = true;
 
         setStatus(
             "LOADING"
@@ -393,16 +346,14 @@ loadBtn.onclick =
                 await loadTokenizer();
             }
 
-            const sourceMode =
-                $("#model-source")
+            const sourceMode = $("#model-source")
                     .value;
 
             if (
                 sourceMode ===
                 "remote"
             ) {
-                const baseUrl =
-                    $("#remote-base-url")
+                const baseUrl = $("#remote-base-url")
                         .value
                         .trim();
 
@@ -417,18 +368,15 @@ loadBtn.onclick =
                     );
                 }
 
-                reader =
-                    await CorePlusRemoteW4PleReader
+                reader = await CorePlusRemoteW4PleReader
                         .fromBaseUrl(
                             baseUrl
                         );
             } else {
-                const coreFile =
-                    $("#core-file")
+                const coreFile = $("#core-file")
                         .files[0];
 
-                const pleFiles =
-                    Array.from(
+                const pleFiles = Array.from(
                         $("#ple-shard-directory")
                             .files
                         ??
@@ -449,8 +397,7 @@ loadBtn.onclick =
                     );
                 }
 
-                const manifestCandidates =
-                    pleFiles.filter(
+                const manifestCandidates = pleFiles.filter(
                         file =>
                             file.name ===
                             "manifest.json"
@@ -464,16 +411,14 @@ loadBtn.onclick =
                     );
                 }
 
-                let manifestFile =
-                    null;
+                let manifestFile = null;
 
                 for (
                     const candidate of
                     manifestCandidates
                 ) {
                     try {
-                        const manifest =
-                            JSON.parse(
+                        const manifest = JSON.parse(
                                 await candidate.text()
                             );
 
@@ -484,8 +429,7 @@ loadBtn.onclick =
                             manifest.complete ===
                             true
                         ) {
-                            manifestFile =
-                                candidate;
+                            manifestFile = candidate;
 
                             break;
                         }
@@ -500,16 +444,14 @@ loadBtn.onclick =
                     );
                 }
 
-                const shardFiles =
-                    pleFiles.filter(
+                const shardFiles = pleFiles.filter(
                         file =>
                             file.name.endsWith(
                                 ".bin"
                             )
                     );
 
-                reader =
-                    await CorePlusW4PleShardReader
+                reader = await CorePlusW4PleShardReader
                         .fromFiles(
                             coreFile,
                             manifestFile,
@@ -517,8 +459,7 @@ loadBtn.onclick =
                         );
             }
 
-            const size =
-                estimate(
+            const size = estimate(
                     reader.header
                 );
 
@@ -633,8 +574,7 @@ loadBtn.onclick =
                 )
             );
 
-            const device =
-                await requestGPU();
+            const device = await requestGPU();
 
             log(
                 ""
@@ -655,8 +595,7 @@ loadBtn.onclick =
                 )
             );
 
-            model =
-                new Gemma4WebGPU(
+            model = new Gemma4WebGPU(
                     device,
                     reader,
                     {
@@ -676,8 +615,7 @@ loadBtn.onclick =
                     }
                 );
 
-            const t0 =
-                performance.now();
+            const t0 = performance.now();
 
             await model.load();
 
@@ -708,8 +646,7 @@ loadBtn.onclick =
                 "READY"
             );
 
-            generateBtn.disabled =
-                false;
+            generateBtn.disabled = false;
         } catch (
             error
         ) {
@@ -734,16 +671,13 @@ loadBtn.onclick =
 
             model?.dispose();
 
-            model =
-                null;
+            model = null;
         } finally {
-            loadBtn.disabled =
-                false;
+            loadBtn.disabled = false;
         }
     };
 
-generateBtn.onclick =
-    async () => {
+generateBtn.onclick = async () => {
         if (
             !model
             ||
@@ -752,8 +686,7 @@ generateBtn.onclick =
             return;
         }
 
-        const prompt =
-            $("#prompt")
+        const prompt = $("#prompt")
                 .value
                 .trim();
 
@@ -761,42 +694,33 @@ generateBtn.onclick =
             return;
         }
 
-        const maxNewTokens =
-            Number(
+        const maxNewTokens = Number(
                 $("#max-new-tokens")
                     .value
             );
 
-        const maxSeq =
-            Number(
+        const maxSeq = Number(
                 $("#max-seq")
                     .value
             );
 
-        stopRequested =
-            false;
+        stopRequested = false;
 
-        generateBtn.disabled =
-            true;
+        generateBtn.disabled = true;
 
-        stopBtn.disabled =
-            false;
+        stopBtn.disabled = false;
 
         setStatus(
             "GENERATING"
         );
 
-        responseEl.textContent =
-            "";
+        responseEl.textContent = "";
 
-        reasoningEl.textContent =
-            "";
+        reasoningEl.textContent = "";
 
-        reasoningWrapEl.hidden =
-            true;
+        reasoningWrapEl.hidden = true;
 
-        tokenCounterEl.textContent =
-            "0 tokens";
+        tokenCounterEl.textContent = "0 tokens";
 
         model.resetCache();
 
@@ -804,8 +728,7 @@ generateBtn.onclick =
             const {
                 rendered,
                 ids: inputIds,
-            } =
-                tokenizer.encodeChat(
+            } = tokenizer.encodeChat(
                     [
                         {
                             role:
@@ -869,8 +792,7 @@ generateBtn.onclick =
                 );
             }
 
-            const stopIds =
-                tokenizer
+            const stopIds = tokenizer
                     .stopTokenIds();
 
             log(
@@ -882,31 +804,24 @@ generateBtn.onclick =
                 )
             );
 
-            const generated =
-                [];
+            const generated = [];
 
-            const decodeTimes =
-                [];
+            const decodeTimes = [];
 
-            let t0 =
-                performance.now();
+            let t0 = performance.now();
 
-            let result =
-                await model.greedy(
+            let result = await model.greedy(
                     inputIds,
                     0
                 );
 
-            const prefillMs =
-                performance.now()
+            const prefillMs = performance.now()
                 -
                 t0;
 
-            prefillEl.textContent =
-                `${prefillMs.toFixed(1)} ms`;
+            prefillEl.textContent = `${prefillMs.toFixed(1)} ms`;
 
-            let nextId =
-                result.nextTokenId;
+            let nextId = result.nextTokenId;
 
             log(
                 `[prefill] ${inputIds.length} tokens`
@@ -960,8 +875,7 @@ generateBtn.onclick =
                     nextId
                 );
 
-                const text =
-                    tokenizer.decode(
+                const text = tokenizer.decode(
                         generated,
                         {
                             skipSpecialTokens:
@@ -969,8 +883,7 @@ generateBtn.onclick =
                         }
                     );
 
-                const rawText =
-                    tokenizer.decode(
+                const rawText = tokenizer.decode(
                         generated,
                         {
                             skipSpecialTokens:
@@ -978,24 +891,19 @@ generateBtn.onclick =
                         }
                     );
 
-                const separated =
-                    splitReasoningOutput(
+                const separated = splitReasoningOutput(
                         rawText,
                         text
                     );
 
-                reasoningWrapEl.hidden =
-                    separated.reasoning.length ===
+                reasoningWrapEl.hidden = separated.reasoning.length ===
                     0;
 
-                reasoningEl.textContent =
-                    separated.reasoning;
+                reasoningEl.textContent = separated.reasoning;
 
-                responseEl.textContent =
-                    separated.answer;
+                responseEl.textContent = separated.answer;
 
-                tokenCounterEl.textContent =
-                    `${generated.length} tokens`;
+                tokenCounterEl.textContent = `${generated.length} tokens`;
 
                 await new Promise(
                     resolve =>
@@ -1011,8 +919,7 @@ generateBtn.onclick =
                     break;
                 }
 
-                const absolutePosition =
-                    inputIds.length
+                const absolutePosition = inputIds.length
                     +
                     generated.length
                     -
@@ -1029,19 +936,16 @@ generateBtn.onclick =
                     break;
                 }
 
-                t0 =
-                    performance.now();
+                t0 = performance.now();
 
-                result =
-                    await model.greedy(
+                result = await model.greedy(
                         [
                             nextId
                         ],
                         absolutePosition
                     );
 
-                const decodeMs =
-                    performance.now()
+                const decodeMs = performance.now()
                     -
                     t0;
 
@@ -1049,11 +953,9 @@ generateBtn.onclick =
                     decodeMs
                 );
 
-                nextId =
-                    result.nextTokenId;
+                nextId = result.nextTokenId;
 
-                const avg =
-                    decodeTimes
+                const avg = decodeTimes
                         .reduce(
                             (
                                 a,
@@ -1065,11 +967,9 @@ generateBtn.onclick =
                     /
                     decodeTimes.length;
 
-                decodeEl.textContent =
-                    `${avg.toFixed(1)} ms`;
+                decodeEl.textContent = `${avg.toFixed(1)} ms`;
 
-                tpsEl.textContent =
-                    (
+                tpsEl.textContent = (
                         1000 /
                         avg
                     ).toFixed(
@@ -1077,8 +977,7 @@ generateBtn.onclick =
                     );
             }
 
-            const finalText =
-                tokenizer.decode(
+            const finalText = tokenizer.decode(
                     generated,
                     {
                         skipSpecialTokens:
@@ -1120,8 +1019,7 @@ generateBtn.onclick =
                 decodeTimes.length >
                 0
             ) {
-                const avg =
-                    decodeTimes
+                const avg = decodeTimes
                         .reduce(
                             (
                                 a,
@@ -1171,18 +1069,14 @@ generateBtn.onclick =
                 "ERROR"
             );
         } finally {
-            generateBtn.disabled =
-                false;
+            generateBtn.disabled = false;
 
-            stopBtn.disabled =
-                true;
+            stopBtn.disabled = true;
         }
     };
 
-stopBtn.onclick =
-    () => {
-        stopRequested =
-            true;
+stopBtn.onclick = () => {
+        stopRequested = true;
 
         setStatus(
             "STOPPING"
@@ -1198,8 +1092,7 @@ try {
         error
     );
 
-    tokenizerStatusEl.textContent =
-        "ERROR";
+    tokenizerStatusEl.textContent = "ERROR";
 
     log(
         "Standalone tokenizer load failed:",

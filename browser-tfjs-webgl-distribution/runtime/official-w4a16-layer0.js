@@ -43,56 +43,48 @@ function scaledDotProductAttention(
     } = {}
 ) {
     return tf.tidy(() => {
-        const qh =
-            q.transpose([
+        const qh = q.transpose([
                 0,
                 2,
                 1,
                 3
             ]);
 
-        const kh =
-            k.transpose([
+        const kh = k.transpose([
                 0,
                 2,
                 1,
                 3
             ]);
 
-        const vh =
-            v.transpose([
+        const vh = v.transpose([
                 0,
                 2,
                 1,
                 3
             ]);
 
-        let logits =
-            tf.matMul(
+        let logits = tf.matMul(
                 qh,
                 kh,
                 false,
                 true
             );
 
-        const qPos =
-            queryPositions
+        const qPos = queryPositions
                 .expandDims(2);
 
-        const kPos =
-            keyPositions
+        const kPos = keyPositions
                 .expandDims(1);
 
-        let mask =
-            kPos.lessEqual(
+        let mask = kPos.lessEqual(
                 qPos
             );
 
         if (
             slidingWindow != null
         ) {
-            mask =
-                mask
+            mask = mask
                     .logicalAnd(
                         kPos.greater(
                             qPos.sub(
@@ -109,8 +101,7 @@ function scaledDotProductAttention(
                     );
         }
 
-        logits =
-            tf.where(
+        logits = tf.where(
                 mask.expandDims(1),
                 logits,
                 tf.fill(
@@ -119,8 +110,7 @@ function scaledDotProductAttention(
                 )
             );
 
-        const probs =
-            tf.softmax(
+        const probs = tf.softmax(
                 logits,
                 -1
             );
@@ -150,17 +140,13 @@ function appendKvCache(
         );
     }
 
-    const oldK =
-        cache.k ?? null;
+    const oldK = cache.k ?? null;
 
-    const oldV =
-        cache.v ?? null;
+    const oldV = cache.v ?? null;
 
-    const oldPositions =
-        cache.positions ?? null;
+    const oldPositions = cache.positions ?? null;
 
-    const nextK =
-        tf.keep(
+    const nextK = tf.keep(
             oldK
                 ? tf.concat(
                     [
@@ -172,8 +158,7 @@ function appendKvCache(
                 : kNew.clone()
         );
 
-    const nextV =
-        tf.keep(
+    const nextV = tf.keep(
             oldV
                 ? tf.concat(
                     [
@@ -185,8 +170,7 @@ function appendKvCache(
                 : vNew.clone()
         );
 
-    const nextPositions =
-        tf.keep(
+    const nextPositions = tf.keep(
             oldPositions
                 ? tf.concat(
                     [
@@ -202,14 +186,11 @@ function appendKvCache(
     oldV?.dispose();
     oldPositions?.dispose();
 
-    cache.k =
-        nextK;
+    cache.k = nextK;
 
-    cache.v =
-        nextV;
+    cache.v = nextV;
 
-    cache.positions =
-        nextPositions;
+    cache.positions = nextPositions;
 
     return cache;
 }
@@ -290,11 +271,9 @@ export class OfficialW4A16Attention {
             const [
                 batch,
                 seq
-            ] =
-                x.shape;
+            ] = x.shape;
 
-            let q =
-                this.qProj
+            let q = this.qProj
                     .apply(x)
                     .reshape([
                         batch,
@@ -303,12 +282,10 @@ export class OfficialW4A16Attention {
                         this.headDim
                     ]);
 
-            q =
-                this.qNorm
+            q = this.qNorm
                     .apply(q);
 
-            q =
-                applyRoPE(
+            q = applyRoPE(
                     q,
                     positions,
                     {
@@ -337,22 +314,17 @@ export class OfficialW4A16Attention {
                     );
                 }
 
-                const shared =
-                    sharedKvStates[
+                const shared = sharedKvStates[
                         this.attentionType
                     ];
 
-                k =
-                    shared.k;
+                k = shared.k;
 
-                v =
-                    shared.v;
+                v = shared.v;
 
-                keyPositions =
-                    shared.positions;
+                keyPositions = shared.positions;
             } else {
-                let kNew =
-                    this.kProj
+                let kNew = this.kProj
                         .apply(x)
                         .reshape([
                             batch,
@@ -361,8 +333,7 @@ export class OfficialW4A16Attention {
                             this.headDim
                         ]);
 
-                let vNew =
-                    this.vProj
+                let vNew = this.vProj
                         .apply(x)
                         .reshape([
                             batch,
@@ -371,15 +342,13 @@ export class OfficialW4A16Attention {
                             this.headDim
                         ]);
 
-                kNew =
-                    this.kNorm
+                kNew = this.kNorm
                         .apply(
                             kNew
                         );
 
                 // Gemma 4 V normalization has no learned scale.
-                vNew =
-                    vNew.mul(
+                vNew = vNew.mul(
                         tf.rsqrt(
                             vNew
                                 .square()
@@ -393,8 +362,7 @@ export class OfficialW4A16Attention {
                         )
                     );
 
-                kNew =
-                    applyRoPE(
+                kNew = applyRoPE(
                         kNew,
                         positions,
                         {
@@ -421,14 +389,11 @@ export class OfficialW4A16Attention {
                         positions
                     );
 
-                    k =
-                        kvCache.k;
+                    k = kvCache.k;
 
-                    v =
-                        kvCache.v;
+                    v = kvCache.v;
 
-                    keyPositions =
-                        kvCache.positions;
+                    keyPositions = kvCache.positions;
 
                     if (
                         this.storeFullLengthKv
@@ -446,18 +411,14 @@ export class OfficialW4A16Attention {
                         // time-direction cache object.
                         sharedKvStates[
                             this.attentionType
-                        ] =
-                            kvCache;
+                        ] = kvCache;
                     }
                 } else {
-                    k =
-                        kNew;
+                    k = kNew;
 
-                    v =
-                        vNew;
+                    v = vNew;
 
-                    keyPositions =
-                        positions;
+                    keyPositions = positions;
 
                     if (
                         this.storeFullLengthKv
@@ -470,8 +431,7 @@ export class OfficialW4A16Attention {
                             );
                         }
 
-                        const previous =
-                            sharedKvStates[
+                        const previous = sharedKvStates[
                                 this.attentionType
                             ];
 
@@ -499,20 +459,17 @@ export class OfficialW4A16Attention {
                 }
             }
 
-            const kExpanded =
-                repeatKVHeads(
+            const kExpanded = repeatKVHeads(
                     k,
                     this.numHeads
                 );
 
-            const vExpanded =
-                repeatKVHeads(
+            const vExpanded = repeatKVHeads(
                     v,
                     this.numHeads
                 );
 
-            const encoded =
-                scaledDotProductAttention(
+            const encoded = scaledDotProductAttention(
                     q,
                     kExpanded,
                     vExpanded,
@@ -528,8 +485,7 @@ export class OfficialW4A16Attention {
                     }
                 );
 
-            const merged =
-                encoded.reshape([
+            const merged = encoded.reshape([
                     batch,
                     seq,
                     this.numHeads *
@@ -642,8 +598,7 @@ export class OfficialW4A16Gemma4Block {
     }
 
     setSkipScale(scale) {
-        const next =
-            typeof scale === "number"
+        const next = typeof scale === "number"
                 ? tf.scalar(scale, "float32")
                 : tf.tidy(() => scale.reshape([]).clone());
 
@@ -686,10 +641,8 @@ export class OfficialW4A16Gemma4Block {
             const pleGate = this.perLayerInputGate.apply(ffwResidual);
             const pleActivated = geluTanh(pleGate);
             const pleModulated = pleActivated.mul(perLayerInput);
-            const pleProjected =
-                this.perLayerProjection.apply(pleModulated);
-            const pleNormalized =
-                this.postPerLayerInputNorm.apply(pleProjected);
+            const pleProjected = this.perLayerProjection.apply(pleModulated);
+            const pleNormalized = this.postPerLayerInputNorm.apply(pleProjected);
 
             const output = ffwResidual
                 .add(pleNormalized)

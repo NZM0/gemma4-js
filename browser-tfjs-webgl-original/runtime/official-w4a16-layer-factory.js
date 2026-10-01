@@ -10,11 +10,9 @@ export function getOfficialW4A16LayerSpec(layerIndex) {
     const full = (layerIndex + 1) % 5 === 0;
 
     const firstKvSharedLayerIndex = 15;
-    const isKvSharedLayer =
-        layerIndex >= firstKvSharedLayerIndex;
+    const isKvSharedLayer = layerIndex >= firstKvSharedLayerIndex;
 
-    const storeFullLengthKv =
-        layerIndex === 13 ||
+    const storeFullLengthKv = layerIndex === 13 ||
         layerIndex === 14;
 
     return {

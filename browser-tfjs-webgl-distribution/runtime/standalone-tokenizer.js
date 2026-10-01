@@ -1,8 +1,6 @@
-const UTF8_ENCODER =
-    new TextEncoder();
+const UTF8_ENCODER = new TextEncoder();
 
-const UTF8_DECODER =
-    new TextDecoder(
+const UTF8_DECODER = new TextDecoder(
         "utf-8",
         {
             fatal: false,
@@ -77,8 +75,7 @@ function byteToken(
 function parseByteToken(
     token
 ) {
-    const match =
-        /^<0x([0-9A-Fa-f]{2})>$/
+    const match = /^<0x([0-9A-Fa-f]{2})>$/
             .exec(
                 token
             );
@@ -149,29 +146,24 @@ function applySplitPretokenizer(
     parts,
     config
 ) {
-    const source =
-        asRegexSource(
+    const source = asRegexSource(
             config.pattern
         );
 
-    const regex =
-        new RegExp(
+    const regex = new RegExp(
             source,
             "gu"
         );
 
-    const behavior =
-        config.behavior
+    const behavior = config.behavior
         ??
         "Isolated";
 
-    const invert =
-        Boolean(
+    const invert = Boolean(
             config.invert
         );
 
-    const result =
-        [];
+    const result = [];
 
     for (
         const part
@@ -188,21 +180,17 @@ function applySplitPretokenizer(
             continue;
         }
 
-        const text =
-            part.text;
+        const text = part.text;
 
-        let cursor =
-            0;
+        let cursor = 0;
 
-        const matches =
-            Array.from(
+        const matches = Array.from(
                 text.matchAll(
                     regex
                 )
             );
 
-        const push =
-            (
+        const push = (
                 value,
                 isMatch
             ) => {
@@ -213,8 +201,7 @@ function applySplitPretokenizer(
                     return;
                 }
 
-                const selected =
-                    invert
+                const selected = invert
                     ? !isMatch
                     : isMatch;
 
@@ -288,8 +275,7 @@ function applySplitPretokenizer(
             of
             matches
         ) {
-            const index =
-                match.index
+            const index = match.index
                 ??
                 0;
 
@@ -306,8 +292,7 @@ function applySplitPretokenizer(
                 true
             );
 
-            cursor =
-                index
+            cursor = index
                 +
                 match[0].length;
         }
@@ -320,8 +305,7 @@ function applySplitPretokenizer(
         );
     }
 
-    const merged =
-        [];
+    const merged = [];
 
     for (
         const part
@@ -337,8 +321,7 @@ function applySplitPretokenizer(
                 1
             ].mergeNext
         ) {
-            const previous =
-                merged.pop();
+            const previous = merged.pop();
 
             merged.push({
                 text:
@@ -364,33 +347,28 @@ function applyMetaspace(
     parts,
     config
 ) {
-    const replacement =
-        config.replacement
+    const replacement = config.replacement
         ??
         "▁";
 
-    const prependScheme =
-        config.prepend_scheme
+    const prependScheme = config.prepend_scheme
         ??
         config.add_prefix_space
             ? "always"
             : "never";
 
-    const split =
-        config.split
+    const split = config.split
         ??
         true;
 
-    const output =
-        [];
+    const output = [];
 
     for (
         let index = 0;
         index < parts.length;
         index++
     ) {
-        const part =
-            parts[
+        const part = parts[
                 index
             ];
 
@@ -404,15 +382,13 @@ function applyMetaspace(
             continue;
         }
 
-        let text =
-            part.text
+        let text = part.text
                 .replaceAll(
                     " ",
                     replacement
                 );
 
-        const shouldPrepend =
-            prependScheme ===
+        const shouldPrepend = prependScheme ===
                 "always"
             ||
             (
@@ -430,8 +406,7 @@ function applyMetaspace(
                 replacement
             )
         ) {
-            text =
-                replacement
+            text = replacement
                 +
                 text;
         }
@@ -446,11 +421,9 @@ function applyMetaspace(
             continue;
         }
 
-        const chunks =
-            [];
+        const chunks = [];
 
-        let start =
-            0;
+        let start = 0;
 
         for (
             let i = 1;
@@ -470,8 +443,7 @@ function applyMetaspace(
                     )
                 );
 
-                start =
-                    i;
+                start = i;
             }
         }
 
@@ -506,8 +478,7 @@ function applyMetaspace(
 function applyWhitespaceSplit(
     parts
 ) {
-    const result =
-        [];
+    const result = [];
 
     for (
         const part
@@ -609,8 +580,7 @@ function normalizeText(
         normalizer.type ===
         "Replace"
     ) {
-        const regex =
-            new RegExp(
+        const regex = new RegExp(
                 asRegexSource(
                     normalizer.pattern
                 ),
@@ -657,22 +627,16 @@ function normalizeText(
 export class Gemma4Tokenizer {
     constructor(
         tokenizerJson,
-        tokenizerConfig =
-            {},
-        generationConfig =
-            {}
+        tokenizerConfig = {},
+        generationConfig = {}
     ) {
-        this.json =
-            tokenizerJson;
+        this.json = tokenizerJson;
 
-        this.config =
-            tokenizerConfig;
+        this.config = tokenizerConfig;
 
-        this.generationConfig =
-            generationConfig;
+        this.generationConfig = generationConfig;
 
-        this.model =
-            tokenizerJson.model;
+        this.model = tokenizerJson.model;
 
         if (
             this.model?.type !==
@@ -683,15 +647,13 @@ export class Gemma4Tokenizer {
             );
         }
 
-        this.vocab =
-            new Map(
+        this.vocab = new Map(
                 Object.entries(
                     this.model.vocab
                 )
             );
 
-        this.idToToken =
-            [];
+        this.idToToken = [];
 
         for (
             const [
@@ -705,15 +667,12 @@ export class Gemma4Tokenizer {
                 Number(
                     id
                 )
-            ] =
-                token;
+            ] = token;
         }
 
-        this.mergeRanks =
-            new Map();
+        this.mergeRanks = new Map();
 
-        const merges =
-            this.model.merges
+        const merges = this.model.merges
             ??
             [];
 
@@ -722,13 +681,11 @@ export class Gemma4Tokenizer {
             rank < merges.length;
             rank++
         ) {
-            const item =
-                merges[
+            const item = merges[
                     rank
                 ];
 
-            const pair =
-                Array.isArray(
+            const pair = Array.isArray(
                     item
                 )
                 ? item
@@ -760,15 +717,13 @@ export class Gemma4Tokenizer {
             }
         }
 
-        this.unkToken =
-            this.model.unk_token
+        this.unkToken = this.model.unk_token
             ??
             tokenizerConfig.unk_token
             ??
             "<unk>";
 
-        this.unkId =
-            Number(
+        this.unkId = Number(
                 this.vocab.get(
                     this.unkToken
                 )
@@ -776,20 +731,17 @@ export class Gemma4Tokenizer {
                 3
             );
 
-        this.byteFallback =
-            Boolean(
+        this.byteFallback = Boolean(
                 this.model
                     .byte_fallback
             );
 
-        this.ignoreMerges =
-            Boolean(
+        this.ignoreMerges = Boolean(
                 this.model
                     .ignore_merges
             );
 
-        this.addedTokens =
-            (
+        this.addedTokens = (
                 tokenizerJson
                     .added_tokens
                 ??
@@ -812,8 +764,7 @@ export class Gemma4Tokenizer {
         ) {
             this.idToToken[
                 item.id
-            ] =
-                item.content;
+            ] = item.content;
 
             this.vocab.set(
                 item.content,
@@ -821,8 +772,7 @@ export class Gemma4Tokenizer {
             );
         }
 
-        this.specialByText =
-            new Map(
+        this.specialByText = new Map(
                 this.addedTokens
                     .filter(
                         item =>
@@ -836,8 +786,7 @@ export class Gemma4Tokenizer {
                     )
             );
 
-        this.specialTexts =
-            Array.from(
+        this.specialTexts = Array.from(
                 this.specialByText
                     .keys()
             )
@@ -851,44 +800,37 @@ export class Gemma4Tokenizer {
                         a.length
                 );
 
-        this.pretokenizers =
-            collectPretokenizers(
+        this.pretokenizers = collectPretokenizers(
                 tokenizerJson
                     .pre_tokenizer
             );
 
-        this.decoders =
-            flattenDecoder(
+        this.decoders = flattenDecoder(
                 tokenizerJson
                     .decoder
             );
 
-        this.bosToken =
-            tokenizerConfig
+        this.bosToken = tokenizerConfig
                 .bos_token
             ??
             "<bos>";
 
-        this.eosToken =
-            tokenizerConfig
+        this.eosToken = tokenizerConfig
                 .eos_token
             ??
             "<eos>";
 
-        this.turnStartToken =
-            tokenizerConfig
+        this.turnStartToken = tokenizerConfig
                 .sot_token
             ??
             "<|turn>";
 
-        this.turnEndToken =
-            tokenizerConfig
+        this.turnEndToken = tokenizerConfig
                 .eot_token
             ??
             "<turn|>";
 
-        this.thinkToken =
-            tokenizerConfig
+        this.thinkToken = tokenizerConfig
                 .think_token
             ??
             "<|think|>";
@@ -897,14 +839,11 @@ export class Gemma4Tokenizer {
     static async fromDirectory(
         baseUrl
     ) {
-        const fetchJson =
-            async (
+        const fetchJson = async (
                 name,
-                required =
-                    true
+                required = true
             ) => {
-                const response =
-                    await fetch(
+                const response = await fetch(
                         `${baseUrl}/${name}`,
                         {
                             cache:
@@ -933,8 +872,7 @@ export class Gemma4Tokenizer {
             tokenizerJson,
             tokenizerConfig,
             generationConfig,
-        ] =
-            await Promise.all([
+        ] = await Promise.all([
                 fetchJson(
                     "tokenizer.json"
                 ),
@@ -959,29 +897,24 @@ export class Gemma4Tokenizer {
     splitAddedTokens(
         text
     ) {
-        const result =
-            [];
+        const result = [];
 
-        let cursor =
-            0;
+        let cursor = 0;
 
         while (
             cursor <
             text.length
         ) {
-            let best =
-                null;
+            let best = null;
 
-            let bestIndex =
-                Infinity;
+            let bestIndex = Infinity;
 
             for (
                 const token
                 of
                 this.specialTexts
             ) {
-                const index =
-                    text.indexOf(
+                const index = text.indexOf(
                         token,
                         cursor
                     );
@@ -992,11 +925,9 @@ export class Gemma4Tokenizer {
                     index <
                     bestIndex
                 ) {
-                    bestIndex =
-                        index;
+                    bestIndex = index;
 
-                    best =
-                        token;
+                    best = token;
                 }
             }
 
@@ -1035,8 +966,7 @@ export class Gemma4Tokenizer {
                     true,
             });
 
-            cursor =
-                bestIndex
+            cursor = bestIndex
                 +
                 best.length;
         }
@@ -1047,8 +977,7 @@ export class Gemma4Tokenizer {
     pretokenize(
         text
     ) {
-        let parts =
-            this.splitAddedTokens(
+        let parts = this.splitAddedTokens(
                 normalizeText(
                     text,
                     this.json.normalizer
@@ -1064,8 +993,7 @@ export class Gemma4Tokenizer {
                 config.type ===
                 "Metaspace"
             ) {
-                parts =
-                    applyMetaspace(
+                parts = applyMetaspace(
                         parts,
                         config
                     );
@@ -1077,8 +1005,7 @@ export class Gemma4Tokenizer {
                 config.type ===
                 "WhitespaceSplit"
             ) {
-                parts =
-                    applyWhitespaceSplit(
+                parts = applyWhitespaceSplit(
                         parts
                     );
 
@@ -1089,8 +1016,7 @@ export class Gemma4Tokenizer {
                 config.type ===
                 "Split"
             ) {
-                parts =
-                    applySplitPretokenizer(
+                parts = applySplitPretokenizer(
                         parts,
                         config
                     );
@@ -1134,15 +1060,13 @@ export class Gemma4Tokenizer {
             ];
         }
 
-        let symbols =
-            splitChars(
+        let symbols = splitChars(
                 piece
             );
 
         // SentencePiece BPE byte fallback: characters not directly
         // representable by the BPE alphabet fall back to UTF-8 bytes.
-        const expanded =
-            [];
+        const expanded = [];
 
         for (
             const symbol
@@ -1164,8 +1088,7 @@ export class Gemma4Tokenizer {
             if (
                 this.byteFallback
             ) {
-                const bytes =
-                    UTF8_ENCODER.encode(
+                const bytes = UTF8_ENCODER.encode(
                         symbol
                     );
 
@@ -1189,8 +1112,7 @@ export class Gemma4Tokenizer {
             );
         }
 
-        symbols =
-            expanded;
+        symbols = expanded;
 
         if (
             symbols.length <
@@ -1212,14 +1134,11 @@ export class Gemma4Tokenizer {
             symbols.length >
             1
         ) {
-            let bestIndex =
-                -1;
+            let bestIndex = -1;
 
-            let bestRank =
-                Infinity;
+            let bestRank = Infinity;
 
-            let bestResult =
-                null;
+            let bestResult = null;
 
             for (
                 let i = 0;
@@ -1228,8 +1147,7 @@ export class Gemma4Tokenizer {
                 1;
                 i++
             ) {
-                const merge =
-                    this.mergeRanks.get(
+                const merge = this.mergeRanks.get(
                         symbols[i]
                         +
                         "\u0000"
@@ -1245,14 +1163,11 @@ export class Gemma4Tokenizer {
                     merge.rank <
                     bestRank
                 ) {
-                    bestRank =
-                        merge.rank;
+                    bestRank = merge.rank;
 
-                    bestIndex =
-                        i;
+                    bestIndex = i;
 
-                    bestResult =
-                        merge.result;
+                    bestResult = merge.result;
                 }
             }
 
@@ -1263,19 +1178,16 @@ export class Gemma4Tokenizer {
                 break;
             }
 
-            const left =
-                symbols[
+            const left = symbols[
                     bestIndex
                 ];
 
-            const right =
-                symbols[
+            const right = symbols[
                     bestIndex +
                     1
                 ];
 
-            const merged =
-                bestResult
+            const merged = bestResult
                 ??
                 (
                     left +
@@ -1289,8 +1201,7 @@ export class Gemma4Tokenizer {
             );
         }
 
-        const ids =
-            [];
+        const ids = [];
 
         for (
             const symbol
@@ -1316,8 +1227,7 @@ export class Gemma4Tokenizer {
             if (
                 this.byteFallback
             ) {
-                const bytes =
-                    UTF8_ENCODER.encode(
+                const bytes = UTF8_ENCODER.encode(
                         symbol
                     );
 
@@ -1326,8 +1236,7 @@ export class Gemma4Tokenizer {
                     of
                     bytes
                 ) {
-                    const fallback =
-                        byteToken(
+                    const fallback = byteToken(
                             value
                         );
 
@@ -1356,8 +1265,7 @@ export class Gemma4Tokenizer {
     encode(
         text
     ) {
-        const ids =
-            [];
+        const ids = [];
 
         for (
             const part
@@ -1369,8 +1277,7 @@ export class Gemma4Tokenizer {
             if (
                 part.special
             ) {
-                const token =
-                    this.specialByText.get(
+                const token = this.specialByText.get(
                         part.text
                     );
 
@@ -1405,8 +1312,7 @@ export class Gemma4Tokenizer {
     decodeTokens(
         tokens
     ) {
-        let parts =
-            tokens.slice();
+        let parts = tokens.slice();
 
         for (
             const decoder
@@ -1417,18 +1323,15 @@ export class Gemma4Tokenizer {
                 decoder.type ===
                 "Replace"
             ) {
-                const pattern =
-                    decoder.pattern
+                const pattern = decoder.pattern
                     ??
                     {};
 
-                const from =
-                    pattern.String
+                const from = pattern.String
                     ??
                     pattern.Regex;
 
-                const to =
-                    decoder.content
+                const to = decoder.content
                     ??
                     "";
 
@@ -1436,8 +1339,7 @@ export class Gemma4Tokenizer {
                     typeof from ===
                     "string"
                 ) {
-                    parts =
-                        parts.map(
+                    parts = parts.map(
                             token =>
                                 token.replaceAll(
                                     from,
@@ -1453,14 +1355,11 @@ export class Gemma4Tokenizer {
                 decoder.type ===
                 "ByteFallback"
             ) {
-                const next =
-                    [];
+                const next = [];
 
-                let bytes =
-                    [];
+                let bytes = [];
 
-                const flush =
-                    () => {
+                const flush = () => {
                         if (
                             bytes.length >
                             0
@@ -1473,8 +1372,7 @@ export class Gemma4Tokenizer {
                                 )
                             );
 
-                            bytes =
-                                [];
+                            bytes = [];
                         }
                     };
 
@@ -1483,8 +1381,7 @@ export class Gemma4Tokenizer {
                     of
                     parts
                 ) {
-                    const value =
-                        parseByteToken(
+                    const value = parseByteToken(
                             token
                         );
 
@@ -1505,8 +1402,7 @@ export class Gemma4Tokenizer {
 
                 flush();
 
-                parts =
-                    next;
+                parts = next;
 
                 continue;
             }
@@ -1515,8 +1411,7 @@ export class Gemma4Tokenizer {
                 decoder.type ===
                 "Fuse"
             ) {
-                parts =
-                    [
+                parts = [
                         parts.join(
                             ""
                         )
@@ -1529,13 +1424,11 @@ export class Gemma4Tokenizer {
                 decoder.type ===
                 "Strip"
             ) {
-                const content =
-                    decoder.content
+                const content = decoder.content
                     ??
                     " ";
 
-                const left =
-                    Number(
+                const left = Number(
                         decoder.start
                         ??
                         decoder.left
@@ -1543,8 +1436,7 @@ export class Gemma4Tokenizer {
                         0
                     );
 
-                const right =
-                    Number(
+                const right = Number(
                         decoder.stop
                         ??
                         decoder.right
@@ -1552,8 +1444,7 @@ export class Gemma4Tokenizer {
                         0
                     );
 
-                let value =
-                    parts.join(
+                let value = parts.join(
                         ""
                     );
 
@@ -1567,8 +1458,7 @@ export class Gemma4Tokenizer {
                             content
                         )
                     ) {
-                        value =
-                            value.slice(
+                        value = value.slice(
                                 content.length
                             );
                     }
@@ -1584,16 +1474,14 @@ export class Gemma4Tokenizer {
                             content
                         )
                     ) {
-                        value =
-                            value.slice(
+                        value = value.slice(
                                 0,
                                 -content.length
                             );
                     }
                 }
 
-                parts =
-                    [
+                parts = [
                         value
                     ];
 
@@ -1604,13 +1492,11 @@ export class Gemma4Tokenizer {
                 decoder.type ===
                 "Metaspace"
             ) {
-                const replacement =
-                    decoder.replacement
+                const replacement = decoder.replacement
                     ??
                     "▁";
 
-                let value =
-                    parts
+                let value = parts
                         .join(
                             ""
                         )
@@ -1619,8 +1505,7 @@ export class Gemma4Tokenizer {
                             " "
                         );
 
-                const prepend =
-                    decoder.prepend_scheme
+                const prepend = decoder.prepend_scheme
                     ??
                     "always";
 
@@ -1632,14 +1517,12 @@ export class Gemma4Tokenizer {
                         " "
                     )
                 ) {
-                    value =
-                        value.slice(
+                    value = value.slice(
                             1
                         );
                 }
 
-                parts =
-                    [
+                parts = [
                         value
                     ];
 
@@ -1659,25 +1542,21 @@ export class Gemma4Tokenizer {
     decode(
         ids,
         {
-            skipSpecialTokens =
-                true,
+            skipSpecialTokens = true,
         } = {}
     ) {
-        const tokens =
-            [];
+        const tokens = [];
 
         for (
             const rawId
             of
             ids
         ) {
-            const id =
-                Number(
+            const id = Number(
                     rawId
                 );
 
-            const token =
-                this.idToToken[
+            const token = this.idToToken[
                     id
                 ];
 
@@ -1691,8 +1570,7 @@ export class Gemma4Tokenizer {
                 continue;
             }
 
-            const added =
-                this.addedTokens.find(
+            const added = this.addedTokens.find(
                     item =>
                         item.id ===
                         id
@@ -1719,14 +1597,11 @@ export class Gemma4Tokenizer {
     renderChat(
         messages,
         {
-            addGenerationPrompt =
-                true,
-            enableThinking =
-                false,
+            addGenerationPrompt = true,
+            enableThinking = false,
         } = {}
     ) {
-        let output =
-            this.bosToken;
+        let output = this.bosToken;
 
         // Gemma 4's official template enables reasoning by opening a system
         // turn containing <|think|>. For the currently supported simple
@@ -1796,11 +1671,9 @@ export class Gemma4Tokenizer {
 
     encodeChat(
         messages,
-        options =
-            {}
+        options = {}
     ) {
-        const rendered =
-            this.renderChat(
+        const rendered = this.renderChat(
                 messages,
                 options
             );
@@ -1815,11 +1688,9 @@ export class Gemma4Tokenizer {
     }
 
     stopTokenIds() {
-        const result =
-            new Set();
+        const result = new Set();
 
-        const add =
-            value => {
+        const add = value => {
                 if (
                     value == null
                 ) {
@@ -1845,10 +1716,8 @@ export class Gemma4Tokenizer {
                 );
             };
 
-        const lookup =
-            token => {
-                const id =
-                    this.vocab.get(
+        const lookup = token => {
+                const id = this.vocab.get(
                         token
                     );
 

@@ -13,11 +13,9 @@ export function createPositionCausalMask(
     keyPositions
 ) {
     return tf.tidy(() => {
-        const q =
-            queryPositions.expandDims(-1);
+        const q = queryPositions.expandDims(-1);
 
-        const k =
-            keyPositions.expandDims(1);
+        const k = keyPositions.expandDims(1);
 
         return k.lessEqual(q);
     });
@@ -37,19 +35,15 @@ export function createSlidingPositionMask(
     slidingWindowSize
 ) {
     return tf.tidy(() => {
-        const q =
-            queryPositions.expandDims(-1);
+        const q = queryPositions.expandDims(-1);
 
-        const k =
-            keyPositions.expandDims(1);
+        const k = keyPositions.expandDims(1);
 
-        const lower =
-            k.greater(
+        const lower = k.greater(
                 q.sub(slidingWindowSize)
             );
 
-        const upper =
-            k.less(
+        const upper = k.less(
                 q.add(slidingWindowSize)
             );
 

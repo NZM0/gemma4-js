@@ -24,15 +24,12 @@ export function bf16BufferToFloat32(buffer) {
         buffer.byteOffset + buffer.byteLength
     );
 
-    const u16 =
-        new Uint16Array(copy);
+    const u16 = new Uint16Array(copy);
 
-    const u32 =
-        new Uint32Array(count);
+    const u32 = new Uint32Array(count);
 
     for (let i = 0; i < count; i++) {
-        u32[i] =
-            u16[i] << 16;
+        u32[i] = u16[i] << 16;
     }
 
     return new Float32Array(
@@ -58,17 +55,14 @@ export class NodeSafeTensorsReader {
             return this;
         }
 
-        this.handle =
-            await fs.open(
+        this.handle = await fs.open(
                 this.filePath,
                 "r"
             );
 
-        const prefix =
-            Buffer.allocUnsafe(8);
+        const prefix = Buffer.allocUnsafe(8);
 
-        const prefixRead =
-            await this.handle.read(
+        const prefixRead = await this.handle.read(
                 prefix,
                 0,
                 8,
@@ -81,8 +75,7 @@ export class NodeSafeTensorsReader {
             );
         }
 
-        this.headerLength =
-            Number(
+        this.headerLength = Number(
                 prefix.readBigUInt64LE(0)
             );
 
@@ -98,13 +91,11 @@ export class NodeSafeTensorsReader {
             );
         }
 
-        const headerBuffer =
-            Buffer.allocUnsafe(
+        const headerBuffer = Buffer.allocUnsafe(
                 this.headerLength
             );
 
-        const headerRead =
-            await this.handle.read(
+        const headerRead = await this.handle.read(
                 headerBuffer,
                 0,
                 this.headerLength,
@@ -120,20 +111,17 @@ export class NodeSafeTensorsReader {
             );
         }
 
-        this.header =
-            JSON.parse(
+        this.header = JSON.parse(
                 headerBuffer.toString(
                     "utf8"
                 )
             );
 
-        this.metadata =
-            this.header.__metadata__
+        this.metadata = this.header.__metadata__
             ??
             {};
 
-        this.byName =
-            new Map(
+        this.byName = new Map(
                 Object.entries(
                     this.header
                 )
@@ -144,16 +132,14 @@ export class NodeSafeTensorsReader {
                     )
             );
 
-        this.dataBaseOffset =
-            8 +
+        this.dataBaseOffset = 8 +
             this.headerLength;
 
         return this;
     }
 
     getMetadata(name) {
-        const meta =
-            this.byName.get(name);
+        const meta = this.byName.get(name);
 
         if (!meta) {
             throw new Error(
@@ -167,25 +153,19 @@ export class NodeSafeTensorsReader {
     async readRaw(name) {
         await this.open();
 
-        const meta =
-            this.getMetadata(name);
+        const meta = this.getMetadata(name);
 
-        const offsets =
-            meta.data_offsets ??
+        const offsets = meta.data_offsets ??
             meta.dataOffsets;
 
-        const [relativeStart, relativeEnd] =
-            offsets;
+        const [relativeStart, relativeEnd] = offsets;
 
-        const length =
-            relativeEnd -
+        const length = relativeEnd -
             relativeStart;
 
-        const buffer =
-            Buffer.allocUnsafe(length);
+        const buffer = Buffer.allocUnsafe(length);
 
-        const absoluteStart =
-            this.dataBaseOffset +
+        const absoluteStart = this.dataBaseOffset +
             relativeStart;
 
         const {
@@ -222,13 +202,11 @@ export class NodeSafeTensorsReader {
             );
         }
 
-        const values =
-            bf16BufferToFloat32(
+        const values = bf16BufferToFloat32(
                 buffer
             );
 
-        const expected =
-            product(meta.shape);
+        const expected = product(meta.shape);
 
         if (
             values.length !== expected
@@ -272,8 +250,7 @@ export class NodeSafeTensorsReader {
     ) {
         await this.open();
 
-        const meta =
-            this.getMetadata(name);
+        const meta = this.getMetadata(name);
 
         if (
             meta.dtype !== "BF16" ||
@@ -289,15 +266,12 @@ export class NodeSafeTensorsReader {
             rowWidth
         ] = meta.shape;
 
-        const offsets =
-            meta.data_offsets ??
+        const offsets = meta.data_offsets ??
             meta.dataOffsets;
 
-        const rowByteLength =
-            rowWidth * 2;
+        const rowByteLength = rowWidth * 2;
 
-        const values =
-            new Float32Array(
+        const values = new Float32Array(
                 rowIndices.length *
                 rowWidth
             );
@@ -307,8 +281,7 @@ export class NodeSafeTensorsReader {
             i < rowIndices.length;
             i++
         ) {
-            const rowIndex =
-                rowIndices[i];
+            const rowIndex = rowIndices[i];
 
             if (
                 !Number.isInteger(rowIndex) ||
@@ -320,18 +293,15 @@ export class NodeSafeTensorsReader {
                 );
             }
 
-            const relativeStart =
-                offsets[0] +
+            const relativeStart = offsets[0] +
                 rowIndex *
                 rowByteLength;
 
-            const buffer =
-                Buffer.allocUnsafe(
+            const buffer = Buffer.allocUnsafe(
                     rowByteLength
                 );
 
-            const absoluteStart =
-                this.dataBaseOffset +
+            const absoluteStart = this.dataBaseOffset +
                 relativeStart;
 
             const {
@@ -352,8 +322,7 @@ export class NodeSafeTensorsReader {
                 );
             }
 
-            const row =
-                bf16BufferToFloat32(
+            const row = bf16BufferToFloat32(
                     buffer
                 );
 
@@ -379,8 +348,7 @@ export class NodeSafeTensorsReader {
         const {
             values,
             shape
-        } =
-            await this.readRowsFloat32(
+        } = await this.readRowsFloat32(
                 name,
                 rowIndices
             );
@@ -403,8 +371,7 @@ export class NodeSafeTensorsReader {
     ) {
         await this.open();
 
-        const meta =
-            this.getMetadata(name);
+        const meta = this.getMetadata(name);
 
         if (
             meta.dtype !== "BF16" ||
@@ -432,28 +399,22 @@ export class NodeSafeTensorsReader {
             );
         }
 
-        const offsets =
-            meta.data_offsets ??
+        const offsets = meta.data_offsets ??
             meta.dataOffsets;
 
-        const rowBytes =
-            rowWidth * 2;
+        const rowBytes = rowWidth * 2;
 
-        const byteLength =
-            rowCount *
+        const byteLength = rowCount *
             rowBytes;
 
-        const relativeStart =
-            offsets[0] +
+        const relativeStart = offsets[0] +
             startRow *
             rowBytes;
 
-        const absoluteStart =
-            this.dataBaseOffset +
+        const absoluteStart = this.dataBaseOffset +
             relativeStart;
 
-        const buffer =
-            Buffer.allocUnsafe(
+        const buffer = Buffer.allocUnsafe(
                 byteLength
             );
 
@@ -496,8 +457,7 @@ export class NodeSafeTensorsReader {
         const {
             values,
             shape
-        } =
-            await this.readRowRangeFloat32(
+        } = await this.readRowRangeFloat32(
                 name,
                 startRow,
                 rowCount

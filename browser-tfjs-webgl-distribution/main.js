@@ -11,32 +11,24 @@ import {
     LocalPleW4ShardReader
 } from "./runtime/ple-w4-shard-reader.js?v=0.3.1";
 
-const $ =
-    selector =>
+const $ = selector =>
         document.querySelector(
             selector
         );
 
-const output =
-    $("#output");
+const output = $("#output");
 
-const response =
-    $("#response");
+const response = $("#response");
 
-const tokenizerStatus =
-    $("#tokenizer-status");
+const tokenizerStatus = $("#tokenizer-status");
 
-const loadBtn =
-    $("#load");
+const loadBtn = $("#load");
 
-const generateBtn =
-    $("#generate");
+const generateBtn = $("#generate");
 
-let tokenizer =
-    null;
+let tokenizer = null;
 
-let model =
-    null;
+let model = null;
 
 function log(
     ...items
@@ -46,8 +38,7 @@ function log(
         +
         "\n";
 
-    output.scrollTop =
-        output.scrollHeight;
+    output.scrollTop = output.scrollHeight;
 }
 
 async function loadTokenizer() {
@@ -55,33 +46,26 @@ async function loadTokenizer() {
         return tokenizer;
     }
 
-    tokenizer =
-        await Gemma4Tokenizer
+    tokenizer = await Gemma4Tokenizer
             .fromDirectory(
                 "../tokenizer/gemma4"
             );
 
-    tokenizerStatus.textContent =
-        "ready";
+    tokenizerStatus.textContent = "ready";
 
     return tokenizer;
 }
 
-loadBtn.onclick =
-    async () => {
-        output.textContent =
-            "";
+loadBtn.onclick = async () => {
+        output.textContent = "";
 
-        const modelFile =
-            $("#core-file")
+        const modelFile = $("#core-file")
                 .files[0];
 
-        const manifestFile =
-            $("#ple-manifest-file")
+        const manifestFile = $("#ple-manifest-file")
                 .files[0];
 
-        const shardFiles =
-            $("#ple-shard-directory")
+        const shardFiles = $("#ple-shard-directory")
                 .files;
 
         if (!modelFile) {
@@ -102,11 +86,9 @@ loadBtn.onclick =
             return;
         }
 
-        loadBtn.disabled =
-            true;
+        loadBtn.disabled = true;
 
-        generateBtn.disabled =
-            true;
+        generateBtn.disabled = true;
 
         try {
             log("TF.js WebGL build:", TFJS_WEBGL_BUILD);
@@ -114,15 +96,13 @@ loadBtn.onclick =
 
             model?.dispose();
 
-            const pleRowProvider =
-                await LocalPleW4ShardReader
+            const pleRowProvider = await LocalPleW4ShardReader
                     .fromFiles(
                         manifestFile,
                         shardFiles
                     );
 
-            model =
-                new TfjsGemma4Backend(
+            model = new TfjsGemma4Backend(
                     modelFile,
                     {
                         backend:
@@ -132,8 +112,7 @@ loadBtn.onclick =
                     }
                 );
 
-            const started =
-                performance.now();
+            const started = performance.now();
 
             await model.load();
 
@@ -148,8 +127,7 @@ loadBtn.onclick =
                 )
             );
 
-            generateBtn.disabled =
-                false;
+            generateBtn.disabled = false;
         } catch (
             error
         ) {
@@ -168,16 +146,13 @@ loadBtn.onclick =
 
             model?.dispose();
 
-            model =
-                null;
+            model = null;
         } finally {
-            loadBtn.disabled =
-                false;
+            loadBtn.disabled = false;
         }
     };
 
-generateBtn.onclick =
-    async () => {
+generateBtn.onclick = async () => {
         if (
             !model
             ||
@@ -186,26 +161,21 @@ generateBtn.onclick =
             return;
         }
 
-        generateBtn.disabled =
-            true;
+        generateBtn.disabled = true;
 
-        response.textContent =
-            "";
+        response.textContent = "";
 
         model.resetCache();
 
-        const prompt =
-            $("#prompt")
+        const prompt = $("#prompt")
                 .value;
 
-        const maxNewTokens =
-            Number(
+        const maxNewTokens = Number(
                 $("#max-tokens")
                     .value
             );
 
-        const enableThinking =
-            $("#thinking")
+        const enableThinking = $("#thinking")
                 .value ===
                 "true";
 
@@ -213,8 +183,7 @@ generateBtn.onclick =
             rendered,
             ids:
                 inputIds,
-        } =
-            tokenizer.encodeChat(
+        } = tokenizer.encodeChat(
                 [
                     {
                         role:
@@ -230,8 +199,7 @@ generateBtn.onclick =
                 }
             );
 
-        const stopIds =
-            tokenizer.stopTokenIds();
+        const stopIds = tokenizer.stopTokenIds();
 
         log("");
         log(
@@ -262,12 +230,10 @@ generateBtn.onclick =
             )
         );
 
-        const generated =
-            [];
+        const generated = [];
 
         try {
-            let result =
-                await model.greedy(
+            let result = await model.greedy(
                     inputIds,
                     0
                 );
@@ -277,15 +243,13 @@ generateBtn.onclick =
                 step < maxNewTokens;
                 step++
             ) {
-                const tokenId =
-                    result.nextTokenId;
+                const tokenId = result.nextTokenId;
 
                 generated.push(
                     tokenId
                 );
 
-                response.textContent =
-                    tokenizer.decode(
+                response.textContent = tokenizer.decode(
                         generated,
                         {
                             skipSpecialTokens:
@@ -328,8 +292,7 @@ generateBtn.onclick =
                     break;
                 }
 
-                result =
-                    await model.greedy(
+                result = await model.greedy(
                         [
                             tokenId
                         ],
@@ -361,7 +324,6 @@ generateBtn.onclick =
                 String(error)
             );
         } finally {
-            generateBtn.disabled =
-                false;
+            generateBtn.disabled = false;
         }
     };

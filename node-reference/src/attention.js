@@ -51,33 +51,24 @@ export class Gemma4Attention {
         }
 
         this.hiddenSize = hiddenSize;
-        this.numAttentionHeads =
-            numAttentionHeads;
-        this.numKeyValueHeads =
-            numKeyValueHeads;
+        this.numAttentionHeads = numAttentionHeads;
+        this.numKeyValueHeads = numKeyValueHeads;
         this.headDim = headDim;
 
-        this.numKeyValueGroups =
-            numAttentionHeads /
+        this.numKeyValueGroups = numAttentionHeads /
             numKeyValueHeads;
 
-        this.attentionType =
-            attentionType;
+        this.attentionType = attentionType;
 
-        this.slidingWindow =
-            slidingWindow;
+        this.slidingWindow = slidingWindow;
 
-        this.ropeTheta =
-            ropeTheta;
+        this.ropeTheta = ropeTheta;
 
-        this.ropeProportion =
-            ropeProportion;
+        this.ropeProportion = ropeProportion;
 
-        this.ropeScaleFactor =
-            ropeScaleFactor;
+        this.ropeScaleFactor = ropeScaleFactor;
 
-        this.attnLogitSoftcap =
-            attnLogitSoftcap;
+        this.attnLogitSoftcap = attnLogitSoftcap;
 
         this.qProj = new Linear(
             hiddenSize,
@@ -99,22 +90,19 @@ export class Gemma4Attention {
             hiddenSize
         );
 
-        this.qNorm =
-            new RMSNorm(
+        this.qNorm = new RMSNorm(
                 headDim,
                 rmsNormEps,
                 true
             );
 
-        this.kNorm =
-            new RMSNorm(
+        this.kNorm = new RMSNorm(
                 headDim,
                 rmsNormEps,
                 true
             );
 
-        this.vNorm =
-            new RMSNorm(
+        this.vNorm = new RMSNorm(
                 headDim,
                 rmsNormEps,
                 false
@@ -123,8 +111,7 @@ export class Gemma4Attention {
 
     _projectQKV(x, positions) {
         return tf.tidy(() => {
-            const [batchSize, seqLen] =
-                x.shape;
+            const [batchSize, seqLen] = x.shape;
 
             let q = this.qProj
                 .apply(x)
@@ -199,39 +186,32 @@ export class Gemma4Attention {
         keyPositions
     ) {
         return tf.tidy(() => {
-            const [batchSize, queryLen] =
-                q.shape;
+            const [batchSize, queryLen] = q.shape;
 
-            const kRepeated =
-                repeatKV(
+            const kRepeated = repeatKV(
                     k,
                     this.numKeyValueGroups
                 );
 
-            const vRepeated =
-                repeatKV(
+            const vRepeated = repeatKV(
                     v,
                     this.numKeyValueGroups
                 );
 
-            const qh =
-                q.transpose(
+            const qh = q.transpose(
                     [0, 2, 1, 3]
                 );
 
-            const kh =
-                kRepeated.transpose(
+            const kh = kRepeated.transpose(
                     [0, 2, 1, 3]
                 );
 
-            const vh =
-                vRepeated.transpose(
+            const vh = vRepeated.transpose(
                     [0, 2, 1, 3]
                 );
 
             // Gemma 4 text attention explicitly uses scale = 1.0.
-            let logits =
-                tf.matMul(
+            let logits = tf.matMul(
                     qh,
                     kh,
                     false,
@@ -241,17 +221,14 @@ export class Gemma4Attention {
             if (
                 this.attnLogitSoftcap !== null
             ) {
-                const cap =
-                    this.attnLogitSoftcap;
+                const cap = this.attnLogitSoftcap;
 
-                logits =
-                    tf.tanh(
+                logits = tf.tanh(
                         logits.div(cap)
                     ).mul(cap);
             }
 
-            let mask =
-                createPositionCausalMask(
+            let mask = createPositionCausalMask(
                     queryPositions,
                     keyPositions
                 );
@@ -260,8 +237,7 @@ export class Gemma4Attention {
                 this.attentionType ===
                 "sliding_attention"
             ) {
-                mask =
-                    tf.logicalAnd(
+                mask = tf.logicalAnd(
                         mask,
                         createSlidingPositionMask(
                             queryPositions,
@@ -271,11 +247,9 @@ export class Gemma4Attention {
                     );
             }
 
-            const mask4d =
-                mask.expandDims(1);
+            const mask4d = mask.expandDims(1);
 
-            const paddedLogits =
-                tf.where(
+            const paddedLogits = tf.where(
                     mask4d,
                     logits,
                     tf.scalar(
@@ -284,20 +258,17 @@ export class Gemma4Attention {
                     )
                 );
 
-            const probs =
-                tf.softmax(
+            const probs = tf.softmax(
                     paddedLogits,
                     -1
                 );
 
-            const encoded =
-                tf.matMul(
+            const encoded = tf.matMul(
                     probs,
                     vh
                 );
 
-            const merged =
-                encoded
+            const merged = encoded
                     .transpose(
                         [0, 2, 1, 3]
                     )
@@ -333,16 +304,13 @@ export class Gemma4Attention {
             captureKv = false,
         } = {}
     ) {
-        const result =
-            tf.tidy(() => {
+        const result = tf.tidy(() => {
                 const [
                     batchSize,
                     seqLen
-                ] =
-                    x.shape;
+                ] = x.shape;
 
-                let q =
-                    this.qProj
+                let q = this.qProj
                         .apply(x)
                         .reshape([
                             batchSize,
@@ -351,12 +319,10 @@ export class Gemma4Attention {
                             this.headDim,
                         ]);
 
-                q =
-                    this.qNorm
+                q = this.qNorm
                         .apply(q);
 
-                q =
-                    applyRoPE(
+                q = applyRoPE(
                         q,
                         positions,
                         {
@@ -376,17 +342,13 @@ export class Gemma4Attention {
                 if (
                     sharedKvState !== null
                 ) {
-                    k =
-                        sharedKvState.k;
+                    k = sharedKvState.k;
 
-                    v =
-                        sharedKvState.v;
+                    v = sharedKvState.v;
 
-                    keyPositions =
-                        sharedKvState.positions;
+                    keyPositions = sharedKvState.positions;
                 } else {
-                    let kNew =
-                        this.kProj
+                    let kNew = this.kProj
                             .apply(x)
                             .reshape([
                                 batchSize,
@@ -395,8 +357,7 @@ export class Gemma4Attention {
                                 this.headDim,
                             ]);
 
-                    let vNew =
-                        this.vProj
+                    let vNew = this.vProj
                             .apply(x)
                             .reshape([
                                 batchSize,
@@ -405,16 +366,13 @@ export class Gemma4Attention {
                                 this.headDim,
                             ]);
 
-                    kNew =
-                        this.kNorm
+                    kNew = this.kNorm
                             .apply(kNew);
 
-                    vNew =
-                        this.vNorm
+                    vNew = this.vNorm
                             .apply(vNew);
 
-                    kNew =
-                        applyRoPE(
+                    kNew = applyRoPE(
                             kNew,
                             positions,
                             {
@@ -433,8 +391,7 @@ export class Gemma4Attention {
                     keyPositions = positions;
                 }
 
-                const output =
-                    this._attend(
+                const output = this._attend(
                         q,
                         k,
                         v,
@@ -521,8 +478,7 @@ export class Gemma4Attention {
 
             let allK = newK;
             let allV = newV;
-            let allPositions =
-                positions;
+            let allPositions = positions;
 
             if (pastCache) {
                 allK = tf.concat(
@@ -541,8 +497,7 @@ export class Gemma4Attention {
                     1
                 );
 
-                allPositions =
-                    tf.concat(
+                allPositions = tf.concat(
                         [
                             pastCache.positions,
                             positions
@@ -551,8 +506,7 @@ export class Gemma4Attention {
                     );
             }
 
-            const output =
-                this._attend(
+            const output = this._attend(
                     q,
                     allK,
                     allV,
@@ -564,8 +518,7 @@ export class Gemma4Attention {
             // attended by future single-token decoding queries.
             let cacheK = allK;
             let cacheV = allV;
-            let cachePositions =
-                allPositions;
+            let cachePositions = allPositions;
 
             if (
                 this.attentionType ===
@@ -573,12 +526,10 @@ export class Gemma4Attention {
                 allK.shape[1] >
                     this.slidingWindow
             ) {
-                const start =
-                    allK.shape[1] -
+                const start = allK.shape[1] -
                     this.slidingWindow;
 
-                cacheK =
-                    allK.slice(
+                cacheK = allK.slice(
                         [
                             0,
                             start,
@@ -593,8 +544,7 @@ export class Gemma4Attention {
                         ]
                     );
 
-                cacheV =
-                    allV.slice(
+                cacheV = allV.slice(
                         [
                             0,
                             start,
@@ -609,8 +559,7 @@ export class Gemma4Attention {
                         ]
                     );
 
-                cachePositions =
-                    allPositions.slice(
+                cachePositions = allPositions.slice(
                         [0, start],
                         [
                             -1,

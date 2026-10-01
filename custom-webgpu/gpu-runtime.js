@@ -102,17 +102,13 @@ export class CorePlusOriginalPleReader {
         coreReader,
         originalReader
     ) {
-        this.coreReader =
-            coreReader;
+        this.coreReader = coreReader;
 
-        this.originalReader =
-            originalReader;
+        this.originalReader = originalReader;
 
-        this.pleName =
-            "model.language_model.embed_tokens_per_layer.weight";
+        this.pleName = "model.language_model.embed_tokens_per_layer.weight";
 
-        this.header =
-            {
+        this.header = {
                 ...coreReader.header,
                 [this.pleName]:
                     originalReader.info(
@@ -120,8 +116,7 @@ export class CorePlusOriginalPleReader {
                     ),
             };
 
-        this.metadata =
-            coreReader.metadata;
+        this.metadata = coreReader.metadata;
     }
 
     static async fromFiles(
@@ -131,8 +126,7 @@ export class CorePlusOriginalPleReader {
         const [
             coreReader,
             originalReader
-        ] =
-            await Promise.all([
+        ] = await Promise.all([
                 new SafeFileReader(
                     coreFile
                 ).init(),
@@ -141,8 +135,7 @@ export class CorePlusOriginalPleReader {
                 ).init(),
             ]);
 
-        const pleName =
-            "model.language_model.embed_tokens_per_layer.weight";
+        const pleName = "model.language_model.embed_tokens_per_layer.weight";
 
         if (
             !originalReader.header[
@@ -164,8 +157,7 @@ export class CorePlusOriginalPleReader {
             );
         }
 
-        const role =
-            coreReader.metadata[
+        const role = coreReader.metadata[
                 "gemma4_webgpu_role"
             ];
 
@@ -376,24 +368,21 @@ fn main(@builtin(global_invocation_id) gid:vec3<u32>) {
         packedBytes,
         scaleBytes
     ) {
-        const packedGpu =
-            uploadBytes(
+        const packedGpu = uploadBytes(
                 device,
                 packedBytes,
                 U.STORAGE,
                 "ple-shard-w4-packed"
             );
 
-        const scalesGpu =
-            uploadBytes(
+        const scalesGpu = uploadBytes(
                 device,
                 scaleBytes,
                 U.STORAGE,
                 "ple-shard-w4-scales"
             );
 
-        const out =
-            createBuffer(
+        const out = createBuffer(
                 device,
                 rowCount *
                 this.width *
@@ -403,8 +392,7 @@ fn main(@builtin(global_invocation_id) gid:vec3<u32>) {
                 "token-ple-w4-dequant"
             );
 
-        const params =
-            uploadU32(
+        const params = uploadU32(
                 device,
                 new Uint32Array([
                     rowCount,
@@ -417,13 +405,11 @@ fn main(@builtin(global_invocation_id) gid:vec3<u32>) {
                 "ple-shard-w4-params"
             );
 
-        const pipeline =
-            this._pipeline(
+        const pipeline = this._pipeline(
                 device
             );
 
-        const bg =
-            device.createBindGroup({
+        const bg = device.createBindGroup({
                 layout:
                     pipeline
                         .getBindGroupLayout(
@@ -461,11 +447,9 @@ fn main(@builtin(global_invocation_id) gid:vec3<u32>) {
                 ],
             });
 
-        const enc =
-            device.createCommandEncoder();
+        const enc = device.createCommandEncoder();
 
-        const pass =
-            enc.beginComputePass();
+        const pass = enc.beginComputePass();
 
         pass.setPipeline(
             pipeline
@@ -662,14 +646,12 @@ export class W4PleShardBundle extends W4PleValidationBundle {
             );
         }
 
-        const shardIndex =
-            Math.floor(
+        const shardIndex = Math.floor(
                 id /
                 this.rowsPerShard
             );
 
-        const shard =
-            this.shards[shardIndex];
+        const shard = this.shards[shardIndex];
 
         if (
             !shard ||
@@ -692,14 +674,12 @@ export class W4PleShardBundle extends W4PleValidationBundle {
     }
 
     async rowsToGpu(device, ids) {
-        const packedBytes =
-            new Uint8Array(
+        const packedBytes = new Uint8Array(
                 ids.length *
                 this.packedRowBytes
             );
 
-        const scaleBytes =
-            new Uint8Array(
+        const scaleBytes = new Uint8Array(
                 ids.length *
                 this.scaleRowBytes
             );
@@ -721,27 +701,23 @@ export class W4PleShardBundle extends W4PleValidationBundle {
                     shard,
                     localRow,
                 }) => {
-                    const file =
-                        this.fileByName.get(
+                    const file = this.fileByName.get(
                             shard.file
                         );
 
-                    const packedStart =
-                        Number(
+                    const packedStart = Number(
                             shard.packed_offset
                         ) +
                         localRow *
                         this.packedRowBytes;
 
-                    const scaleStart =
-                        Number(
+                    const scaleStart = Number(
                             shard.scales_offset
                         ) +
                         localRow *
                         this.scaleRowBytes;
 
-                    const [pbuf, sbuf] =
-                        await Promise.all([
+                    const [pbuf, sbuf] = await Promise.all([
                             file
                                 .slice(
                                     packedStart,
@@ -785,30 +761,23 @@ export class W4PleShardBundle extends W4PleValidationBundle {
 }
 
 
-const DEFAULT_REMOTE_CHUNK_BYTES =
-    32 * 1024 * 1024;
+const DEFAULT_REMOTE_CHUNK_BYTES = 32 * 1024 * 1024;
 
 class RemoteRangeBlob {
     constructor(
         url,
         {
-            chunkBytes =
-                DEFAULT_REMOTE_CHUNK_BYTES,
-            cacheName =
-                "gemma4-model-cache-v1",
+            chunkBytes = DEFAULT_REMOTE_CHUNK_BYTES,
+            cacheName = "gemma4-model-cache-v1",
         } = {}
     ) {
-        this.url =
-            url;
+        this.url = url;
 
-        this.chunkBytes =
-            chunkBytes;
+        this.chunkBytes = chunkBytes;
 
-        this.cacheName =
-            cacheName;
+        this.cacheName = cacheName;
 
-        this.memory =
-            new Map();
+        this.memory = new Map();
     }
 
     slice(start, end) {
@@ -837,8 +806,7 @@ class RemoteRangeBlob {
     }
 
     _key(index) {
-        const encoded =
-            encodeURIComponent(
+        const encoded = encodeURIComponent(
                 this.url
             );
 
@@ -859,23 +827,19 @@ class RemoteRangeBlob {
             );
         }
 
-        const cache =
-            await this._cache();
+        const cache = await this._cache();
 
-        const key =
-            this._key(
+        const key = this._key(
                 index
             );
 
         if (cache) {
-            const hit =
-                await cache.match(
+            const hit = await cache.match(
                     key
                 );
 
             if (hit) {
-                const buffer =
-                    await hit.arrayBuffer();
+                const buffer = await hit.arrayBuffer();
 
                 this.memory.set(
                     index,
@@ -886,17 +850,14 @@ class RemoteRangeBlob {
             }
         }
 
-        const start =
-            index *
+        const start = index *
             this.chunkBytes;
 
-        const end =
-            start +
+        const end = start +
             this.chunkBytes -
             1;
 
-        const response =
-            await fetch(
+        const response = await fetch(
                 this.url,
                 {
                     headers: {
@@ -917,8 +878,7 @@ class RemoteRangeBlob {
             );
         }
 
-        const buffer =
-            await response.arrayBuffer();
+        const buffer = await response.arrayBuffer();
 
         this.memory.set(
             index,
@@ -949,14 +909,12 @@ class RemoteRangeBlob {
             );
         }
 
-        const first =
-            Math.floor(
+        const first = Math.floor(
                 start /
                 this.chunkBytes
             );
 
-        const last =
-            Math.floor(
+        const last = Math.floor(
                 (
                     start +
                     length -
@@ -965,8 +923,7 @@ class RemoteRangeBlob {
                 this.chunkBytes
             );
 
-        const chunks =
-            await Promise.all(
+        const chunks = await Promise.all(
                 Array.from(
                     {
                         length:
@@ -985,48 +942,41 @@ class RemoteRangeBlob {
                 )
             );
 
-        const out =
-            new Uint8Array(
+        const out = new Uint8Array(
                 length
             );
 
-        let written =
-            0;
+        let written = 0;
 
         for (
             let index = first;
             index <= last;
             ++index
         ) {
-            const chunk =
-                new Uint8Array(
+            const chunk = new Uint8Array(
                     chunks[
                         index -
                         first
                     ]
                 );
 
-            const chunkStart =
-                index *
+            const chunkStart = index *
                 this.chunkBytes;
 
-            const sourceStart =
-                Math.max(
+            const sourceStart = Math.max(
                     start -
                     chunkStart,
                     0
                 );
 
-            const sourceEnd =
-                Math.min(
+            const sourceEnd = Math.min(
                     start +
                     length -
                     chunkStart,
                     chunk.byteLength
                 );
 
-            const part =
-                chunk.subarray(
+            const part = chunk.subarray(
                     sourceStart,
                     sourceEnd
                 );
@@ -1057,21 +1007,17 @@ class RemoteShardStore {
     constructor(
         baseUrl,
         {
-            cacheName =
-                "gemma4-model-cache-v1",
+            cacheName = "gemma4-model-cache-v1",
         } = {}
     ) {
-        this.baseUrl =
-            baseUrl.replace(
+        this.baseUrl = baseUrl.replace(
                 /\/+$/,
                 ""
             );
 
-        this.cacheName =
-            cacheName;
+        this.cacheName = cacheName;
 
-        this.memory =
-            new Map();
+        this.memory = new Map();
     }
 
     async _cache() {
@@ -1102,23 +1048,19 @@ class RemoteShardStore {
             );
         }
 
-        const url =
-            this.url(
+        const url = this.url(
                 name
             );
 
-        const cache =
-            await this._cache();
+        const cache = await this._cache();
 
         if (cache) {
-            const hit =
-                await cache.match(
+            const hit = await cache.match(
                     url
                 );
 
             if (hit) {
-                const buffer =
-                    await hit.arrayBuffer();
+                const buffer = await hit.arrayBuffer();
 
                 this.memory.set(
                     name,
@@ -1129,8 +1071,7 @@ class RemoteShardStore {
             }
         }
 
-        const response =
-            await fetch(
+        const response = await fetch(
                 url,
                 {
                     cache:
@@ -1144,8 +1085,7 @@ class RemoteShardStore {
             );
         }
 
-        const buffer =
-            await response.arrayBuffer();
+        const buffer = await response.arrayBuffer();
 
         this.memory.set(
             name,
@@ -1189,25 +1129,20 @@ export class RemoteW4PleShardBundle extends W4PleValidationBundle {
             null
         );
 
-        this.manifest =
-            manifest;
+        this.manifest = manifest;
 
-        this.vocabSize =
-            Number(
+        this.vocabSize = Number(
                 manifest.vocab_size
             );
 
-        this.rowsPerShard =
-            Number(
+        this.rowsPerShard = Number(
                 manifest.layout
                     .rows_per_shard
             );
 
-        this.shards =
-            manifest.shards;
+        this.shards = manifest.shards;
 
-        this.store =
-            new RemoteShardStore(
+        this.store = new RemoteShardStore(
                 pleBaseUrl
             );
     }
@@ -1215,8 +1150,7 @@ export class RemoteW4PleShardBundle extends W4PleValidationBundle {
     static async fromUrl(
         manifestUrl
     ) {
-        const response =
-            await fetch(
+        const response = await fetch(
                 manifestUrl,
                 {
                     cache:
@@ -1230,8 +1164,7 @@ export class RemoteW4PleShardBundle extends W4PleValidationBundle {
             );
         }
 
-        const manifest =
-            await response.json();
+        const manifest = await response.json();
 
         if (
             manifest.format !==
@@ -1245,8 +1178,7 @@ export class RemoteW4PleShardBundle extends W4PleValidationBundle {
             );
         }
 
-        const base =
-            manifestUrl.replace(
+        const base = manifestUrl.replace(
                 /\/[^/]*$/,
                 ""
             );
@@ -1258,19 +1190,16 @@ export class RemoteW4PleShardBundle extends W4PleValidationBundle {
     }
 
     _location(tokenId) {
-        const id =
-            Number(
+        const id = Number(
                 tokenId
             );
 
-        const shardIndex =
-            Math.floor(
+        const shardIndex = Math.floor(
                 id /
                 this.rowsPerShard
             );
 
-        const shard =
-            this.shards[
+        const shard = this.shards[
                 shardIndex
             ];
 
@@ -1294,14 +1223,12 @@ export class RemoteW4PleShardBundle extends W4PleValidationBundle {
         device,
         ids
     ) {
-        const packedBytes =
-            new Uint8Array(
+        const packedBytes = new Uint8Array(
                 ids.length *
                 this.packedRowBytes
             );
 
-        const scaleBytes =
-            new Uint8Array(
+        const scaleBytes = new Uint8Array(
                 ids.length *
                 this.scaleRowBytes
             );
@@ -1315,26 +1242,22 @@ export class RemoteW4PleShardBundle extends W4PleValidationBundle {
                     const {
                         shard,
                         localRow,
-                    } =
-                        this._location(
+                    } = this._location(
                             id
                         );
 
-                    const buffer =
-                        await this.store
+                    const buffer = await this.store
                             .fileBuffer(
                                 shard.file
                             );
 
-                    const packedStart =
-                        Number(
+                    const packedStart = Number(
                             shard.packed_offset
                         ) +
                         localRow *
                         this.packedRowBytes;
 
-                    const scaleStart =
-                        Number(
+                    const scaleStart = Number(
                             shard.scales_offset
                         ) +
                         localRow *
@@ -1377,14 +1300,11 @@ export class CorePlusRemoteW4PleReader {
         coreReader,
         pleBundle
     ) {
-        this.coreReader =
-            coreReader;
+        this.coreReader = coreReader;
 
-        this.pleBundle =
-            pleBundle;
+        this.pleBundle = pleBundle;
 
-        this.pleName =
-            "model.language_model.embed_tokens_per_layer.weight";
+        this.pleName = "model.language_model.embed_tokens_per_layer.weight";
 
         this.header = {
             ...coreReader.header,
@@ -1402,30 +1322,25 @@ export class CorePlusRemoteW4PleReader {
             },
         };
 
-        this.metadata =
-            coreReader.metadata;
+        this.metadata = coreReader.metadata;
     }
 
     static async fromBaseUrl(
         baseUrl
     ) {
-        const root =
-            baseUrl.replace(
+        const root = baseUrl.replace(
                 /\/+$/,
                 ""
             );
 
-        const coreUrl =
-            `${root}/core.safetensors`;
+        const coreUrl = `${root}/core.safetensors`;
 
-        const manifestUrl =
-            `${root}/ple-w4/manifest.json`;
+        const manifestUrl = `${root}/ple-w4/manifest.json`;
 
         const [
             coreReader,
             pleBundle,
-        ] =
-            await Promise.all([
+        ] = await Promise.all([
                 new SafeFileReader(
                     new RemoteRangeBlob(
                         coreUrl
@@ -1564,14 +1479,11 @@ export class CorePlusRemoteW4PleReader {
 
 export class CorePlusW4PleShardReader {
     constructor(coreReader, pleBundle) {
-        this.coreReader =
-            coreReader;
+        this.coreReader = coreReader;
 
-        this.pleBundle =
-            pleBundle;
+        this.pleBundle = pleBundle;
 
-        this.pleName =
-            "model.language_model.embed_tokens_per_layer.weight";
+        this.pleName = "model.language_model.embed_tokens_per_layer.weight";
 
         this.header = {
             ...coreReader.header,
@@ -1592,8 +1504,7 @@ export class CorePlusW4PleShardReader {
             ],
         };
 
-        this.metadata =
-            coreReader.metadata;
+        this.metadata = coreReader.metadata;
     }
 
     static async fromFiles(
@@ -1604,8 +1515,7 @@ export class CorePlusW4PleShardReader {
         const [
             coreReader,
             pleBundle,
-        ] =
-            await Promise.all([
+        ] = await Promise.all([
                 new SafeFileReader(
                     coreFile
                 ).init(),

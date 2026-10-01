@@ -55,22 +55,19 @@ function normalizeTokenIds(value) {
         typeof value.tolist ===
         "function"
     ) {
-        value =
-            value.tolist();
+        value = value.tolist();
     }
 
     if (
         value?.input_ids != null
     ) {
-        value =
-            value.input_ids;
+        value = value.input_ids;
 
         if (
             typeof value.tolist ===
             "function"
         ) {
-            value =
-                value.tolist();
+            value = value.tolist();
         }
     }
 
@@ -97,8 +94,7 @@ function normalizeTokenIds(value) {
             ArrayBuffer.isView(value[0])
         )
     ) {
-        value =
-            Array.from(
+        value = Array.from(
                 value[0]
             );
     }
@@ -112,12 +108,10 @@ async function buildPromptTokenIds(
     mode,
     tokenizerSource
 ) {
-    let resolvedMode =
-        mode;
+    let resolvedMode = mode;
 
     if (resolvedMode === "auto") {
-        resolvedMode =
-            /(?:^|[-_/])it(?:$|[-_/])/i.test(
+        resolvedMode = /(?:^|[-_/])it(?:$|[-_/])/i.test(
                 tokenizerSource
             )
                 ? "chat"
@@ -128,8 +122,7 @@ async function buildPromptTokenIds(
         const {
             rendered,
             ids,
-        } =
-            tokenizer.encodeChat(
+        } = tokenizer.encodeChat(
                 [
                     {
                         role: "user",
@@ -150,8 +143,7 @@ async function buildPromptTokenIds(
     }
 
     if (resolvedMode === "base") {
-        const rendered =
-            tokenizer.bosToken +
+        const rendered = tokenizer.bosToken +
             prompt;
 
         return {
@@ -178,8 +170,7 @@ async function realForwardLastToken(
         temperature = 0.0,
     } = {}
 ) {
-    const positions =
-        tf.tensor2d(
+    const positions = tf.tensor2d(
             [
                 Array.from(
                     {
@@ -206,14 +197,12 @@ async function realForwardLastToken(
             hidden:
                 inputHidden,
             perLayerInputs,
-        } =
-            await prepareRealInputAndPle(
+        } = await prepareRealInputAndPle(
                 reader,
                 tokenIds
             ));
 
-        transformerHidden =
-            await runRealTransformerStack(
+        transformerHidden = await runRealTransformerStack(
                 reader,
                 safetensorsPath,
                 null,
@@ -222,8 +211,7 @@ async function realForwardLastToken(
                 positions
             );
 
-        finalHidden =
-            await applyRealFinalNorm(
+        finalHidden = await applyRealFinalNorm(
                 reader,
                 transformerHidden
             );
@@ -252,10 +240,8 @@ const [
     safetensorsPath,
     prompt,
     tokenizerSource,
-    maxNewTokensArg =
-        "4",
-    promptMode =
-        "auto",
+    maxNewTokensArg = "4",
+    promptMode = "auto",
 ] = process.argv;
 
 if (
@@ -269,8 +255,7 @@ if (
     process.exit(2);
 }
 
-const maxNewTokens =
-    Number.parseInt(
+const maxNewTokens = Number.parseInt(
         maxNewTokensArg,
         10
     );
@@ -320,8 +305,7 @@ console.log(
     "\nLoading tokenizer..."
 );
 
-const tokenizer =
-    await Gemma4Tokenizer
+const tokenizer = await Gemma4Tokenizer
         .fromDirectory(
             tokenizerSource
         );
@@ -330,8 +314,7 @@ const {
     tokenIds: promptTokenIds,
     mode: resolvedPromptMode,
     rendered: renderedPrompt,
-} =
-    await buildPromptTokenIds(
+} = await buildPromptTokenIds(
         tokenizer,
         prompt,
         promptMode,
@@ -365,15 +348,13 @@ console.log(
     promptTokenIds
 );
 
-const reader =
-    new NodeSafeTensorsReader(
+const reader = new NodeSafeTensorsReader(
         safetensorsPath
     );
 
 await reader.open();
 
-const generated =
-    [...promptTokenIds];
+const generated = [...promptTokenIds];
 
 const newTokenIds = [];
 
@@ -395,15 +376,13 @@ try {
         step < maxNewTokens;
         step++
     ) {
-        const started =
-            Date.now();
+        const started = Date.now();
 
         console.log(
             `token ${step + 1}/${maxNewTokens}: running ${generated.length}-token prefix...`
         );
 
-        const next =
-            await realForwardLastToken(
+        const next = await realForwardLastToken(
                 reader,
                 safetensorsPath,
                 generated,
@@ -421,8 +400,7 @@ try {
             next.tokenId
         );
 
-        const piece =
-            await tokenizer.decode(
+        const piece = await tokenizer.decode(
                 [next.tokenId],
                 {
                     skipSpecialTokens:
@@ -430,8 +408,7 @@ try {
                 }
             );
 
-        const partial =
-            await tokenizer.decode(
+        const partial = await tokenizer.decode(
                 newTokenIds,
                 {
                     skipSpecialTokens:
@@ -439,8 +416,7 @@ try {
                 }
             );
 
-        const seconds =
-            (
+        const seconds = (
                 (
                     Date.now() -
                     started
@@ -478,8 +454,7 @@ try {
     await reader.close();
 }
 
-const rawText =
-    await tokenizer.decode(
+const rawText = await tokenizer.decode(
         newTokenIds,
         {
             skipSpecialTokens:
@@ -487,8 +462,7 @@ const rawText =
         }
     );
 
-const cleanText =
-    await tokenizer.decode(
+const cleanText = await tokenizer.decode(
         newTokenIds,
         {
             skipSpecialTokens:
@@ -523,8 +497,7 @@ console.log(
     newTokenIds
 );
 
-const memory =
-    tf.memory();
+const memory = tf.memory();
 
 console.log(
     "\nfinal tf.memory():",

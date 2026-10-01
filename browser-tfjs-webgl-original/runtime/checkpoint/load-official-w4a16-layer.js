@@ -16,33 +16,27 @@ async function loadLinear(
     base,
     linear
 ) {
-    const packedName =
-        `${base}.weight_packed`;
+    const packedName = `${base}.weight_packed`;
 
-    const denseName =
-        `${base}.weight`;
+    const denseName = `${base}.weight`;
 
     if (hasTensor(reader, packedName)) {
-        const shape =
-            await reader.readInt64(
+        const shape = await reader.readInt64(
                 `${base}.weight_shape`
             );
 
-        const packed =
-            await reader.readInt32(
+        const packed = await reader.readInt32(
                 packedName
             );
 
-        const scale =
-            await reader.readBF16Float32(
+        const scale = await reader.readBF16Float32(
                 `${base}.weight_scale`
             );
 
         const [
             outDim,
             inDim
-        ] =
-            shape.values;
+        ] = shape.values;
 
         if (
             outDim !== linear.outDim ||
@@ -66,8 +60,7 @@ async function loadLinear(
     }
 
     if (hasTensor(reader, denseName)) {
-        const dense =
-            await reader.readBF16Float32(
+        const dense = await reader.readBF16Float32(
                 denseName
             );
 
@@ -83,8 +76,7 @@ async function loadLinear(
             );
         }
 
-        const tensor =
-            tf.tensor2d(
+        const tensor = tf.tensor2d(
                 dense.values,
                 dense.shape,
                 "float32"
@@ -120,8 +112,7 @@ async function setNormIfPresent(
     const {
         values,
         shape
-    } =
-        await reader.readBF16Float32(
+    } = await reader.readBF16Float32(
             name
         );
 
@@ -134,8 +125,7 @@ async function setNormIfPresent(
         );
     }
 
-    const t =
-        tf.tensor1d(
+    const t = tf.tensor1d(
             values,
             "float32"
         );
@@ -151,13 +141,11 @@ export async function loadOfficialW4A16Layer(
     layerIndex,
     reader
 ) {
-    const spec =
-        getOfficialW4A16LayerSpec(
+    const spec = getOfficialW4A16LayerSpec(
             layerIndex
         );
 
-    const root =
-        `model.language_model.layers.${layerIndex}`;
+    const root = `model.language_model.layers.${layerIndex}`;
 
     await setNormIfPresent(
         reader,
@@ -194,8 +182,7 @@ export async function loadOfficialW4A16Layer(
         1536
     );
 
-    const qNormStored =
-        await setNormIfPresent(
+    const qNormStored = await setNormIfPresent(
             reader,
             block.attention.qNorm,
             `${root}.self_attn.q_norm.weight`,
@@ -205,8 +192,7 @@ export async function loadOfficialW4A16Layer(
     let kNormStored = false;
 
     if (!spec.isKvSharedLayer) {
-        kNormStored =
-            await setNormIfPresent(
+        kNormStored = await setNormIfPresent(
                 reader,
                 block.attention.kNorm,
                 `${root}.self_attn.k_norm.weight`,
@@ -216,23 +202,20 @@ export async function loadOfficialW4A16Layer(
 
     const modes = {};
 
-    modes.q =
-        await loadLinear(
+    modes.q = await loadLinear(
             reader,
             `${root}.self_attn.q_proj`,
             block.attention.qProj
         );
 
     if (!spec.isKvSharedLayer) {
-        modes.k =
-            await loadLinear(
+        modes.k = await loadLinear(
                 reader,
                 `${root}.self_attn.k_proj`,
                 block.attention.kProj
             );
 
-        modes.v =
-            await loadLinear(
+        modes.v = await loadLinear(
                 reader,
                 `${root}.self_attn.v_proj`,
                 block.attention.vProj
@@ -242,50 +225,43 @@ export async function loadOfficialW4A16Layer(
         modes.v = "SHARED";
     }
 
-    modes.o =
-        await loadLinear(
+    modes.o = await loadLinear(
             reader,
             `${root}.self_attn.o_proj`,
             block.attention.oProj
         );
 
-    modes.gate =
-        await loadLinear(
+    modes.gate = await loadLinear(
             reader,
             `${root}.mlp.gate_proj`,
             block.mlp.gateProj
         );
 
-    modes.up =
-        await loadLinear(
+    modes.up = await loadLinear(
             reader,
             `${root}.mlp.up_proj`,
             block.mlp.upProj
         );
 
-    modes.down =
-        await loadLinear(
+    modes.down = await loadLinear(
             reader,
             `${root}.mlp.down_proj`,
             block.mlp.downProj
         );
 
-    modes.pleGate =
-        await loadLinear(
+    modes.pleGate = await loadLinear(
             reader,
             `${root}.per_layer_input_gate`,
             block.perLayerInputGate
         );
 
-    modes.pleProjection =
-        await loadLinear(
+    modes.pleProjection = await loadLinear(
             reader,
             `${root}.per_layer_projection`,
             block.perLayerProjection
         );
 
-    const scalar =
-        await reader.readBF16Float32(
+    const scalar = await reader.readBF16Float32(
             `${root}.layer_scalar`
         );
 
