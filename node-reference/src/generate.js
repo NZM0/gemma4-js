@@ -46,38 +46,23 @@ Examples:
 
 function normalizeTokenIds(value) {
     if (value == null) {
-        throw new Error(
-            "Tokenizer/chat template returned no token IDs."
-        );
+        throw new Error("Tokenizer/chat template returned no token IDs.");
     }
 
-    if (
-        typeof value.tolist ===
-        "function"
-    ) {
+    if (typeof value.tolist === "function") {
         value = value.tolist();
     }
 
-    if (
-        value?.input_ids != null
-    ) {
+    if (value?.input_ids != null) {
         value = value.input_ids;
 
-        if (
-            typeof value.tolist ===
-            "function"
-        ) {
+        if (typeof value.tolist === "function") {
             value = value.tolist();
         }
     }
 
-    if (
-        ArrayBuffer.isView(value)
-    ) {
-        return Array.from(
-            value,
-            Number
-        );
+    if (ArrayBuffer.isView(value)) {
+        return Array.from(value, Number);
     }
 
     if (!Array.isArray(value)) {
@@ -87,35 +72,20 @@ function normalizeTokenIds(value) {
     }
 
     while (
-        Array.isArray(value) &&
-        value.length === 1 &&
-        (
-            Array.isArray(value[0]) ||
-            ArrayBuffer.isView(value[0])
-        )
+        Array.isArray(value) && value.length === 1 &&
+        (Array.isArray(value[0]) || ArrayBuffer.isView(value[0]))
     ) {
-        value = Array.from(
-                value[0]
-            );
+        value = Array.from(value[0]);
     }
 
     return value.map(Number);
 }
 
-async function buildPromptTokenIds(
-    tokenizer,
-    prompt,
-    mode,
-    tokenizerSource
-) {
+async function buildPromptTokenIds(tokenizer, prompt, mode, tokenizerSource) {
     let resolvedMode = mode;
 
     if (resolvedMode === "auto") {
-        resolvedMode = /(?:^|[-_/])it(?:$|[-_/])/i.test(
-                tokenizerSource
-            )
-                ? "chat"
-                : "base";
+        resolvedMode = /(?:^|[-_/])it(?:$|[-_/])/i.test(tokenizerSource) ? "chat" : "base";
     }
 
     if (resolvedMode === "chat") {
@@ -123,17 +93,17 @@ async function buildPromptTokenIds(
             rendered,
             ids,
         } = tokenizer.encodeChat(
-                [
-                    {
-                        role: "user",
-                        content: prompt,
-                    }
-                ],
+            [
                 {
-                    addGenerationPrompt: true,
-                    enableThinking: false,
+                    role: "user",
+                    content: prompt,
                 }
-            );
+            ],
+            {
+                addGenerationPrompt: true,
+                enableThinking: false,
+            }
+        );
 
         return {
             tokenIds: ids,
@@ -143,14 +113,10 @@ async function buildPromptTokenIds(
     }
 
     if (resolvedMode === "base") {
-        const rendered = tokenizer.bosToken +
-            prompt;
+        const rendered = tokenizer.bosToken + prompt;
 
         return {
-            tokenIds:
-                tokenizer.encode(
-                    rendered
-                ),
+            tokenIds: tokenizer.encode(rendered),
             rendered,
             mode: "base prompt + BOS",
         };
@@ -171,21 +137,17 @@ async function realForwardLastToken(
     } = {}
 ) {
     const positions = tf.tensor2d(
-            [
-                Array.from(
-                    {
-                        length:
-                            tokenIds.length
-                    },
-                    (_, i) => i
-                )
-            ],
-            [
-                1,
-                tokenIds.length
-            ],
-            "int32"
-        );
+        [
+            Array.from(
+                {
+                    length: tokenIds.length
+                },
+                (_, i) => i
+            )
+        ],
+        [1, tokenIds.length],
+        "int32"
+    );
 
     let inputHidden = null;
     let perLayerInputs = null;
@@ -194,27 +156,20 @@ async function realForwardLastToken(
 
     try {
         ({
-            hidden:
-                inputHidden,
+            hidden: inputHidden,
             perLayerInputs,
-        } = await prepareRealInputAndPle(
-                reader,
-                tokenIds
-            ));
+        } = await prepareRealInputAndPle(reader, tokenIds));
 
         transformerHidden = await runRealTransformerStack(
-                reader,
-                safetensorsPath,
-                null,
-                inputHidden,
-                perLayerInputs,
-                positions
-            );
+            reader,
+            safetensorsPath,
+            null,
+            inputHidden,
+            perLayerInputs,
+            positions
+        );
 
-        finalHidden = await applyRealFinalNorm(
-                reader,
-                transformerHidden
-            );
+        finalHidden = await applyRealFinalNorm(reader, transformerHidden);
 
         return await selectNextTokenFromLastPosition(
             reader,
@@ -234,38 +189,16 @@ async function realForwardLastToken(
     }
 }
 
-const [
-    ,
-    ,
-    safetensorsPath,
-    prompt,
-    tokenizerSource,
-    maxNewTokensArg = "4",
-    promptMode = "auto",
-] = process.argv;
+const [,, safetensorsPath, prompt, tokenizerSource, maxNewTokensArg = "4", promptMode = "auto"] = process.argv;
 
-if (
-    !safetensorsPath
-    ||
-    prompt == null
-    ||
-    !tokenizerSource
-) {
+if (!safetensorsPath || prompt == null || !tokenizerSource) {
     usage();
     process.exit(2);
 }
 
-const maxNewTokens = Number.parseInt(
-        maxNewTokensArg,
-        10
-    );
+const maxNewTokens = Number.parseInt(maxNewTokensArg, 10);
 
-if (
-    !Number.isInteger(
-        maxNewTokens
-    ) ||
-    maxNewTokens <= 0
-) {
+if (!Number.isInteger(maxNewTokens) || maxNewTokens <= 0) {
     throw new Error(
         `Invalid max-new-tokens: ${maxNewTokensArg}`
     );
@@ -274,108 +207,53 @@ if (
 await tf.setBackend("cpu");
 await tf.ready();
 
-console.log(
-    "========================================"
-);
+console.log("========================================");
 
-console.log(
-    "Gemma 4 — Node.js TensorFlow.js Generation"
-);
+console.log("Gemma 4 — Node.js TensorFlow.js Generation");
 
-console.log(
-    "========================================"
-);
+console.log("========================================");
 
-console.log(
-    "backend         :",
-    tf.getBackend()
-);
+console.log("backend         :", tf.getBackend());
 
-console.log(
-    "tokenizer       :",
-    tokenizerSource
-);
+console.log("tokenizer       :", tokenizerSource);
 
-console.log(
-    "max new tokens  :",
-    maxNewTokens
-);
+console.log("max new tokens  :", maxNewTokens);
 
-console.log(
-    "\nLoading tokenizer..."
-);
+console.log("\nLoading tokenizer...");
 
-const tokenizer = await Gemma4Tokenizer
-        .fromDirectory(
-            tokenizerSource
-        );
+const tokenizer = await Gemma4Tokenizer.fromDirectory(tokenizerSource);
 
 const {
     tokenIds: promptTokenIds,
     mode: resolvedPromptMode,
     rendered: renderedPrompt,
-} = await buildPromptTokenIds(
-        tokenizer,
-        prompt,
-        promptMode,
-        tokenizerSource
-    );
+} = await buildPromptTokenIds(tokenizer, prompt, promptMode, tokenizerSource);
 
-console.log(
-    "prompt mode     :",
-    resolvedPromptMode
-);
+console.log("prompt mode     :", resolvedPromptMode);
 
-console.log(
-    "prompt          :",
-    prompt
-);
+console.log("prompt          :", prompt);
 
-console.log(
-    "rendered        :",
-    JSON.stringify(
-        renderedPrompt
-    )
-);
+console.log("rendered        :", JSON.stringify(renderedPrompt));
 
-console.log(
-    "prompt tokens   :",
-    promptTokenIds.length
-);
+console.log("prompt tokens   :", promptTokenIds.length);
 
-console.log(
-    "prompt token ids:",
-    promptTokenIds
-);
+console.log("prompt token ids:", promptTokenIds);
 
-const reader = new NodeSafeTensorsReader(
-        safetensorsPath
-    );
+const reader = new NodeSafeTensorsReader(safetensorsPath);
 
 await reader.open();
 
 const generated = [...promptTokenIds];
-
 const newTokenIds = [];
 
-console.log(
-    "\n[GENERATION]"
-);
+console.log("\n[GENERATION]");
 
-console.log(
-    "Reference mode: dense BF16 checkpoint, layer-streamed TensorFlow.js CPU."
-);
+console.log("Reference mode: dense BF16 checkpoint, layer-streamed TensorFlow.js CPU.");
 
-console.log(
-    "The full prefix is recomputed for each generated token to keep memory bounded.\n"
-);
+console.log("The full prefix is recomputed for each generated token to keep memory bounded.\n");
 
 try {
-    for (
-        let step = 0;
-        step < maxNewTokens;
-        step++
-    ) {
+    for (let step = 0; step < maxNewTokens; step++) {
         const started = Date.now();
 
         console.log(
@@ -383,46 +261,34 @@ try {
         );
 
         const next = await realForwardLastToken(
-                reader,
-                safetensorsPath,
-                generated,
-                {
-                    topK: 1,
-                    temperature: 0.0,
-                }
-            );
-
-        generated.push(
-            next.tokenId
+            reader,
+            safetensorsPath,
+            generated,
+            {
+                topK: 1,
+                temperature: 0.0,
+            }
         );
 
-        newTokenIds.push(
-            next.tokenId
-        );
+        generated.push(next.tokenId);
+
+        newTokenIds.push(next.tokenId);
 
         const piece = await tokenizer.decode(
-                [next.tokenId],
-                {
-                    skipSpecialTokens:
-                        false
-                }
-            );
+            [next.tokenId],
+            {
+                skipSpecialTokens: false
+            }
+        );
 
         const partial = await tokenizer.decode(
-                newTokenIds,
-                {
-                    skipSpecialTokens:
-                        false
-                }
-            );
+            newTokenIds,
+            {
+                skipSpecialTokens: false
+            }
+        );
 
-        const seconds = (
-                (
-                    Date.now() -
-                    started
-                ) /
-                1000
-            ).toFixed(2);
+        const seconds = ((Date.now() - started) / 1000).toFixed(2);
 
         console.log(
             `  id=${next.tokenId} logit=${next.logit.toFixed(5)} time=${seconds}s`
@@ -436,16 +302,11 @@ try {
             `  output : ${partial}`
         );
 
-        if (
-            tokenizer
-                .stopTokenIds()
-                .has(
-                    next.tokenId
-                )
+        if (tokenizer
+            .stopTokenIds()
+            .has(next.tokenId)
         ) {
-            console.log(
-                "  stop token reached."
-            );
+            console.log("  stop token reached.");
 
             break;
         }
@@ -455,65 +316,39 @@ try {
 }
 
 const rawText = await tokenizer.decode(
-        newTokenIds,
-        {
-            skipSpecialTokens:
-                false
-        }
-    );
+    newTokenIds,
+    {
+        skipSpecialTokens: false
+    }
+);
 
 const cleanText = await tokenizer.decode(
-        newTokenIds,
-        {
-            skipSpecialTokens:
-                true
-        }
-    );
-
-console.log(
-    "\n========================================"
+    newTokenIds,
+    {
+        skipSpecialTokens: true
+    }
 );
 
-console.log(
-    "RESULT"
-);
+console.log("\n========================================");
 
-console.log(
-    "========================================"
-);
+console.log("RESULT");
 
-console.log(
-    "raw  :",
-    rawText
-);
+console.log("========================================");
 
-console.log(
-    "clean:",
-    cleanText
-);
+console.log("raw  :", rawText);
 
-console.log(
-    "new token ids:",
-    newTokenIds
-);
+console.log("clean:", cleanText);
+
+console.log("new token ids:", newTokenIds);
 
 const memory = tf.memory();
 
-console.log(
-    "\nfinal tf.memory():",
-    memory
-);
+console.log("\nfinal tf.memory():", memory);
 
-if (
-    memory.numTensors !== 0 ||
-    memory.numDataBuffers !== 0 ||
-    memory.numBytes !== 0
-) {
+if (memory.numTensors !== 0 || memory.numDataBuffers !== 0 || memory.numBytes !== 0) {
     throw new Error(
         `Tensor leak detected: ${memory.numTensors} tensors, ${memory.numBytes} bytes`
     );
 }
 
-console.log(
-    "\nGeneration completed."
-);
+console.log("\nGeneration completed.");

@@ -98,182 +98,84 @@ export class SafeFileReader {
  * the model is split across two files.
  */
 export class CorePlusOriginalPleReader {
-    constructor(
-        coreReader,
-        originalReader
-    ) {
+    constructor(coreReader, originalReader) {
         this.coreReader = coreReader;
-
         this.originalReader = originalReader;
-
         this.pleName = "model.language_model.embed_tokens_per_layer.weight";
 
         this.header = {
-                ...coreReader.header,
-                [this.pleName]:
-                    originalReader.info(
-                        this.pleName
-                    ),
-            };
+            ...coreReader.header,
+            [this.pleName]: originalReader.info(this.pleName),
+        };
 
         this.metadata = coreReader.metadata;
     }
 
-    static async fromFiles(
-        coreFile,
-        originalFile
-    ) {
-        const [
-            coreReader,
-            originalReader
-        ] = await Promise.all([
-                new SafeFileReader(
-                    coreFile
-                ).init(),
-                new SafeFileReader(
-                    originalFile
-                ).init(),
-            ]);
-
+    static async fromFiles(coreFile, originalFile) {
+        const [coreReader, originalReader] = await Promise.all([new SafeFileReader(coreFile).init(), new SafeFileReader(originalFile).init()]);
         const pleName = "model.language_model.embed_tokens_per_layer.weight";
 
-        if (
-            !originalReader.header[
-                pleName
-            ]
-        ) {
-            throw new Error(
-                "Original checkpoint does not contain the PLE tensor."
-            );
+        if (!originalReader.header[pleName]) {
+            throw new Error("Original checkpoint does not contain the PLE tensor.");
         }
 
-        if (
-            coreReader.header[
-                pleName
-            ]
-        ) {
-            throw new Error(
-                "core.safetensors unexpectedly contains the PLE tensor."
-            );
+        if (coreReader.header[pleName]) {
+            throw new Error("core.safetensors unexpectedly contains the PLE tensor.");
         }
 
-        const role = coreReader.metadata[
-                "gemma4_webgpu_role"
-            ];
+        const role = coreReader.metadata["gemma4_webgpu_role"];
 
-        if (
-            role != null &&
-            role !== "core"
-        ) {
+        if (role != null && role !== "core") {
             throw new Error(
                 `Selected CORE file has unexpected role: ${role}`
             );
         }
 
-        return new CorePlusOriginalPleReader(
-            coreReader,
-            originalReader
-        );
+        return new CorePlusOriginalPleReader(coreReader, originalReader);
     }
 
-    _readerFor(
-        name
-    ) {
-        return (
-            name ===
-            this.pleName
-        )
-            ? this.originalReader
-            : this.coreReader;
+    _readerFor(name) {
+        return (name === this.pleName) ? this.originalReader : this.coreReader;
     }
 
-    info(
-        name
-    ) {
+    info(name) {
         return this
-            ._readerFor(
-                name
-            )
-            .info(
-                name
-            );
+            ._readerFor(name)
+            .info(name);
     }
 
-    async bytes(
-        name
-    ) {
+    async bytes(name) {
         return this
-            ._readerFor(
-                name
-            )
-            .bytes(
-                name
-            );
+            ._readerFor(name)
+            .bytes(name);
     }
 
-    async rangeInTensor(
-        name,
-        byteOffset,
-        byteLength
-    ) {
+    async rangeInTensor(name, byteOffset, byteLength) {
         return this
-            ._readerFor(
-                name
-            )
-            .rangeInTensor(
-                name,
-                byteOffset,
-                byteLength
-            );
+            ._readerFor(name)
+            .rangeInTensor(name, byteOffset, byteLength);
     }
 
-    async bf16(
-        name
-    ) {
+    async bf16(name) {
         return this
-            ._readerFor(
-                name
-            )
-            .bf16(
-                name
-            );
+            ._readerFor(name)
+            .bf16(name);
     }
 
-    async scalarBF16(
-        name
-    ) {
+    async scalarBF16(name) {
         return this
-            ._readerFor(
-                name
-            )
-            .scalarBF16(
-                name
-            );
+            ._readerFor(name)
+            .scalarBF16(name);
     }
 
-    async bf16Rows(
-        name,
-        ids
-    ) {
+    async bf16Rows(name, ids) {
         return this
-            ._readerFor(
-                name
-            )
-            .bf16Rows(
-                name,
-                ids
-            );
+            ._readerFor(name)
+            .bf16Rows(name, ids);
     }
 
-    sourceFor(
-        name
-    ) {
-        return (
-            name ===
-            this.pleName
-        )
-            ? "original checkpoint (PLE only)"
-            : "core.safetensors";
+    sourceFor(name) {
+        return (name === this.pleName) ? "original checkpoint (PLE only)" : "core.safetensors";
     }
 }
 
@@ -290,9 +192,7 @@ export class W4PleValidationBundle {
         this.manifest = manifest;
         this.packedFile = packedFile;
         this.scalesFile = scalesFile;
-        this.rowIndex = new Map(
-            manifest.token_ids.map((id, i) => [Number(id), i])
-        );
+        this.rowIndex = new Map(manifest.token_ids.map((id, i) => [Number(id), i]));
         this.width = Number(manifest.width);
         this.groupSize = Number(manifest.group_size);
         this.packedRowBytes = Number(manifest.packed_row_bytes);
@@ -362,117 +262,68 @@ fn main(@builtin(global_invocation_id) gid:vec3<u32>) {
         return pipeline;
     }
 
-    _dequantRowsToGpu(
-        device,
-        rowCount,
-        packedBytes,
-        scaleBytes
-    ) {
-        const packedGpu = uploadBytes(
-                device,
-                packedBytes,
-                U.STORAGE,
-                "ple-shard-w4-packed"
-            );
-
-        const scalesGpu = uploadBytes(
-                device,
-                scaleBytes,
-                U.STORAGE,
-                "ple-shard-w4-scales"
-            );
+    _dequantRowsToGpu(device, rowCount, packedBytes, scaleBytes) {
+        const packedGpu = uploadBytes(device, packedBytes, U.STORAGE, "ple-shard-w4-packed");
+        const scalesGpu = uploadBytes(device, scaleBytes, U.STORAGE, "ple-shard-w4-scales");
 
         const out = createBuffer(
-                device,
-                rowCount *
-                this.width *
-                4,
-                U.STORAGE |
-                U.COPY_SRC,
-                "token-ple-w4-dequant"
-            );
+            device,
+            rowCount * this.width * 4,
+            U.STORAGE | U.COPY_SRC,
+            "token-ple-w4-dequant"
+        );
 
         const params = uploadU32(
-                device,
-                new Uint32Array([
-                    rowCount,
-                    this.width,
-                    this.groupSize,
-                    this.width /
-                    this.groupSize,
-                ]),
-                U.UNIFORM,
-                "ple-shard-w4-params"
-            );
+            device,
+            new Uint32Array([rowCount, this.width, this.groupSize, this.width / this.groupSize]),
+            U.UNIFORM,
+            "ple-shard-w4-params"
+        );
 
-        const pipeline = this._pipeline(
-                device
-            );
+        const pipeline = this._pipeline(device);
 
         const bg = device.createBindGroup({
-                layout:
-                    pipeline
-                        .getBindGroupLayout(
-                            0
-                        ),
-                entries: [
-                    {
-                        binding: 0,
-                        resource: {
-                            buffer:
-                                packedGpu,
-                        },
+            layout: pipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: packedGpu,
                     },
-                    {
-                        binding: 1,
-                        resource: {
-                            buffer:
-                                scalesGpu,
-                        },
+                },
+                {
+                    binding: 1,
+                    resource: {
+                        buffer: scalesGpu,
                     },
-                    {
-                        binding: 2,
-                        resource: {
-                            buffer:
-                                out,
-                        },
+                },
+                {
+                    binding: 2,
+                    resource: {
+                        buffer: out,
                     },
-                    {
-                        binding: 3,
-                        resource: {
-                            buffer:
-                                params,
-                        },
+                },
+                {
+                    binding: 3,
+                    resource: {
+                        buffer: params,
                     },
-                ],
-            });
+                },
+            ],
+        });
 
         const enc = device.createCommandEncoder();
-
         const pass = enc.beginComputePass();
 
-        pass.setPipeline(
-            pipeline
-        );
+        pass.setPipeline(pipeline);
 
-        pass.setBindGroup(
-            0,
-            bg
-        );
+        pass.setBindGroup(0, bg);
 
-        pass.dispatchWorkgroups(
-            Math.ceil(
-                rowCount *
-                this.width /
-                256
-            )
-        );
+        pass.dispatchWorkgroups(Math.ceil(rowCount * this.width / 256));
 
         pass.end();
 
-        device.queue.submit([
-            enc.finish(),
-        ]);
+        device.queue.submit([enc.finish()]);
 
         // Submission order guarantees the following Gemma dispatches see the
         // dequantized buffer before these temporary upload buffers disappear.
@@ -489,8 +340,7 @@ fn main(@builtin(global_invocation_id) gid:vec3<u32>) {
             const x = this.rowIndex.get(Number(id));
             if (x == null) {
                 throw new Error(
-                    `PLE W4 validation bundle does not contain token ${id}. ` +
-                    `The generated trajectory diverged from the reference, or the bundle needs another row.`
+                    `PLE W4 validation bundle does not contain token ${id}. ` + `The generated trajectory diverged from the reference, or the bundle needs another row.`
                 );
             }
             return x;
@@ -514,20 +364,10 @@ fn main(@builtin(global_invocation_id) gid:vec3<u32>) {
 
         const packedGpu=uploadBytes(device,packedBytes,U.STORAGE,"ple-w4-packed");
         const scalesGpu=uploadBytes(device,scaleBytes,U.STORAGE,"ple-w4-scales");
-        const out=createBuffer(
-            device,
-            ids.length*this.width*4,
-            U.STORAGE|U.COPY_SRC,
-            "token-ple-w4-dequant"
-        );
+        const out=createBuffer(device, ids.length*this.width*4, U.STORAGE|U.COPY_SRC, "token-ple-w4-dequant");
         const params=uploadU32(
             device,
-            new Uint32Array([
-                ids.length,
-                this.width,
-                this.groupSize,
-                this.width/this.groupSize,
-            ]),
+            new Uint32Array([ids.length, this.width, this.groupSize, this.width/this.groupSize]),
             U.UNIFORM,
             "ple-w4-params"
         );
@@ -590,9 +430,7 @@ export class W4PleShardBundle extends W4PleValidationBundle {
         this.vocabSize = Number(manifest.vocab_size);
         this.rowsPerShard = Number(manifest.layout.rows_per_shard);
         this.shards = manifest.shards;
-        this.fileByName = new Map(
-            Array.from(shardFiles).map(file => [file.name, file])
-        );
+        this.fileByName = new Map(Array.from(shardFiles).map(file => [file.name, file]));
 
         const missing = this.shards
             .map(s => s.file)
@@ -608,56 +446,33 @@ export class W4PleShardBundle extends W4PleValidationBundle {
     static async fromFiles(manifestFile, shardFiles) {
         const manifest = JSON.parse(await manifestFile.text());
 
-        if (
-            manifest.format !== "gemma4-ple-w4-sharded-v1" ||
-            manifest.complete !== true
-        ) {
+        if (manifest.format !== "gemma4-ple-w4-sharded-v1" || manifest.complete !== true) {
             throw new Error(
                 `Unexpected/incomplete PLE shard manifest: ${manifest.format}`
             );
         }
 
-        if (
-            Number(manifest.width) !== 8960 ||
-            Number(manifest.quantization?.group_size) !== 32 ||
-            manifest.layout?.kind !== "row_sharded_packed_then_scales"
+        if (Number(manifest.width) !== 8960 || Number(manifest.quantization?.group_size) !== 32 || manifest.layout?.kind !== "row_sharded_packed_then_scales"
         ) {
-            throw new Error(
-                "PLE shard manifest has unexpected geometry/layout."
-            );
+            throw new Error("PLE shard manifest has unexpected geometry/layout.");
         }
 
-        return new W4PleShardBundle(
-            manifest,
-            shardFiles
-        );
+        return new W4PleShardBundle(manifest, shardFiles);
     }
 
     _location(tokenId) {
         const id = Number(tokenId);
 
-        if (
-            !Number.isInteger(id) ||
-            id < 0 ||
-            id >= this.vocabSize
-        ) {
+        if (!Number.isInteger(id) || id < 0 || id >= this.vocabSize) {
             throw new Error(
                 `PLE token id out of range: ${tokenId}`
             );
         }
 
-        const shardIndex = Math.floor(
-                id /
-                this.rowsPerShard
-            );
-
+        const shardIndex = Math.floor(id / this.rowsPerShard);
         const shard = this.shards[shardIndex];
 
-        if (
-            !shard ||
-            id < shard.row_start ||
-            id >= shard.row_end
-        ) {
+        if (!shard || id < shard.row_start || id >= shard.row_end) {
             throw new Error(
                 `PLE shard manifest cannot resolve token ${id}.`
             );
@@ -665,97 +480,50 @@ export class W4PleShardBundle extends W4PleValidationBundle {
 
         return {
             shard,
-            localRow:
-                id -
-                Number(
-                    shard.row_start
-                ),
+            localRow: id - Number(shard.row_start),
         };
     }
 
     async rowsToGpu(device, ids) {
-        const packedBytes = new Uint8Array(
-                ids.length *
-                this.packedRowBytes
-            );
-
-        const scaleBytes = new Uint8Array(
-                ids.length *
-                this.scaleRowBytes
-            );
+        const packedBytes = new Uint8Array(ids.length * this.packedRowBytes);
+        const scaleBytes = new Uint8Array(ids.length * this.scaleRowBytes);
 
         // Group requests by shard so a prefill touching the same shard does
         // not needlessly create independent lookup bookkeeping.
-        const requests = ids.map(
-            (id, outputRow) => ({
-                id: Number(id),
-                outputRow,
+        const requests = ids.map((id, outputRow) => ({
+            id: Number(id),
+            outputRow,
                 ...this._location(id),
-            })
+        })
         );
 
         await Promise.all(
-            requests.map(
-                async ({
-                    outputRow,
-                    shard,
-                    localRow,
-                }) => {
-                    const file = this.fileByName.get(
-                            shard.file
-                        );
+            requests.map(async ({
+                outputRow,
+                shard,
+                localRow,
+            }) => {
+                const file = this.fileByName.get(shard.file);
+                const packedStart = Number(shard.packed_offset) + localRow * this.packedRowBytes;
+                const scaleStart = Number(shard.scales_offset) + localRow * this.scaleRowBytes;
 
-                    const packedStart = Number(
-                            shard.packed_offset
-                        ) +
-                        localRow *
-                        this.packedRowBytes;
+                const [pbuf, sbuf] = await Promise.all([
+                    file
+                        .slice(packedStart, packedStart + this.packedRowBytes)
+                        .arrayBuffer(),
 
-                    const scaleStart = Number(
-                            shard.scales_offset
-                        ) +
-                        localRow *
-                        this.scaleRowBytes;
+                    file
+                        .slice(scaleStart, scaleStart + this.scaleRowBytes)
+                        .arrayBuffer(),
+                ]);
 
-                    const [pbuf, sbuf] = await Promise.all([
-                            file
-                                .slice(
-                                    packedStart,
-                                    packedStart +
-                                    this.packedRowBytes
-                                )
-                                .arrayBuffer(),
+                packedBytes.set(new Uint8Array(pbuf), outputRow * this.packedRowBytes);
 
-                            file
-                                .slice(
-                                    scaleStart,
-                                    scaleStart +
-                                    this.scaleRowBytes
-                                )
-                                .arrayBuffer(),
-                        ]);
-
-                    packedBytes.set(
-                        new Uint8Array(pbuf),
-                        outputRow *
-                        this.packedRowBytes
-                    );
-
-                    scaleBytes.set(
-                        new Uint8Array(sbuf),
-                        outputRow *
-                        this.scaleRowBytes
-                    );
-                }
-            )
+                scaleBytes.set(new Uint8Array(sbuf), outputRow * this.scaleRowBytes);
+            })
         );
 
-        return this._dequantRowsToGpu(
-            device,
-            ids.length,
-            packedBytes,
-            scaleBytes
-        );
+        return this._dequantRowsToGpu(device, ids.length, packedBytes, scaleBytes);
     }
 
 }
@@ -772,43 +540,27 @@ class RemoteRangeBlob {
         } = {}
     ) {
         this.url = url;
-
         this.chunkBytes = chunkBytes;
-
         this.cacheName = cacheName;
-
         this.memory = new Map();
     }
 
     slice(start, end) {
         return {
-            arrayBuffer:
-                () =>
-                    this.readRange(
-                        start,
-                        end -
-                        start
-                    ),
+            arrayBuffer: () => this.readRange(start, end - start),
         };
     }
 
     async _cache() {
-        if (
-            typeof caches ===
-            "undefined"
-        ) {
+        if (typeof caches === "undefined") {
             return null;
         }
 
-        return caches.open(
-            this.cacheName
-        );
+        return caches.open(this.cacheName);
     }
 
     _key(index) {
-        const encoded = encodeURIComponent(
-                this.url
-            );
+        const encoded = encodeURIComponent(this.url);
 
         return new URL(
             `./__gemma4_cache__/range?src=${encoded}&chunk=${index}`,
@@ -817,183 +569,89 @@ class RemoteRangeBlob {
     }
 
     async _chunk(index) {
-        if (
-            this.memory.has(
-                index
-            )
-        ) {
-            return this.memory.get(
-                index
-            );
+        if (this.memory.has(index)) {
+            return this.memory.get(index);
         }
 
         const cache = await this._cache();
-
-        const key = this._key(
-                index
-            );
+        const key = this._key(index);
 
         if (cache) {
-            const hit = await cache.match(
-                    key
-                );
+            const hit = await cache.match(key);
 
             if (hit) {
                 const buffer = await hit.arrayBuffer();
 
-                this.memory.set(
-                    index,
-                    buffer
-                );
+                this.memory.set(index, buffer);
 
                 return buffer;
             }
         }
 
-        const start = index *
-            this.chunkBytes;
-
-        const end = start +
-            this.chunkBytes -
-            1;
+        const start = index * this.chunkBytes;
+        const end = start + this.chunkBytes - 1;
 
         const response = await fetch(
-                this.url,
-                {
-                    headers: {
-                        Range:
-                            `bytes=${start}-${end}`,
-                    },
-                    cache:
-                        "no-store",
-                }
-            );
+            this.url,
+            {
+                headers: {
+                    Range: `bytes=${start}-${end}`,
+                },
+                cache: "no-store",
+            }
+        );
 
-        if (
-            response.status !== 206
-        ) {
+        if (response.status !== 206) {
             throw new Error(
-                `Remote CORE server did not honor HTTP Range ` +
-                `(status ${response.status}). Expected 206 Partial Content: ${this.url}`
+                `Remote CORE server did not honor HTTP Range ` + `(status ${response.status}). Expected 206 Partial Content: ${this.url}`
             );
         }
 
         const buffer = await response.arrayBuffer();
 
-        this.memory.set(
-            index,
-            buffer
-        );
+        this.memory.set(index, buffer);
 
         if (cache) {
-            await cache.put(
-                key,
-                new Response(
-                    buffer.slice(0)
-                )
-            );
+            await cache.put(key, new Response(buffer.slice(0)));
         }
 
         return buffer;
     }
 
-    async readRange(
-        start,
-        length
-    ) {
-        if (
-            length === 0
-        ) {
-            return new ArrayBuffer(
-                0
-            );
+    async readRange(start, length) {
+        if (length === 0) {
+            return new ArrayBuffer(0);
         }
 
-        const first = Math.floor(
-                start /
-                this.chunkBytes
-            );
-
-        const last = Math.floor(
-                (
-                    start +
-                    length -
-                    1
-                ) /
-                this.chunkBytes
-            );
+        const first = Math.floor(start / this.chunkBytes);
+        const last = Math.floor((start + length - 1) / this.chunkBytes);
 
         const chunks = await Promise.all(
-                Array.from(
-                    {
-                        length:
-                            last -
-                            first +
-                            1,
-                    },
-                    (
-                        _,
-                        i
-                    ) =>
-                        this._chunk(
-                            first +
-                            i
-                        )
-                )
-            );
+            Array.from(
+                {
+                    length: last - first + 1,
+                },
+                (_, i) => this._chunk(first + i)
+            )
+        );
 
-        const out = new Uint8Array(
-                length
-            );
+        const out = new Uint8Array(length);
 
         let written = 0;
 
-        for (
-            let index = first;
-            index <= last;
-            ++index
-        ) {
-            const chunk = new Uint8Array(
-                    chunks[
-                        index -
-                        first
-                    ]
-                );
+        for (let index = first; index <= last; ++index) {
+            const chunk = new Uint8Array(chunks[index - first]);
+            const chunkStart = index * this.chunkBytes;
+            const sourceStart = Math.max(start - chunkStart, 0);
+            const sourceEnd = Math.min(start + length - chunkStart, chunk.byteLength);
+            const part = chunk.subarray(sourceStart, sourceEnd);
 
-            const chunkStart = index *
-                this.chunkBytes;
+            out.set(part, written);
 
-            const sourceStart = Math.max(
-                    start -
-                    chunkStart,
-                    0
-                );
-
-            const sourceEnd = Math.min(
-                    start +
-                    length -
-                    chunkStart,
-                    chunk.byteLength
-                );
-
-            const part = chunk.subarray(
-                    sourceStart,
-                    sourceEnd
-                );
-
-            out.set(
-                part,
-                written
-            );
-
-            written +=
-                part.byteLength;
+            written += part.byteLength;
         }
 
-        if (
-            written !==
-            length
-        ) {
+        if (written !== length) {
             throw new Error(
                 `Remote range length mismatch: ${written} != ${length}`
             );
@@ -1010,27 +668,17 @@ class RemoteShardStore {
             cacheName = "gemma4-model-cache-v1",
         } = {}
     ) {
-        this.baseUrl = baseUrl.replace(
-                /\/+$/,
-                ""
-            );
-
+        this.baseUrl = baseUrl.replace(/\/+$/, "");
         this.cacheName = cacheName;
-
         this.memory = new Map();
     }
 
     async _cache() {
-        if (
-            typeof caches ===
-            "undefined"
-        ) {
+        if (typeof caches === "undefined") {
             return null;
         }
 
-        return caches.open(
-            this.cacheName
-        );
+        return caches.open(this.cacheName);
     }
 
     url(name) {
@@ -1038,46 +686,31 @@ class RemoteShardStore {
     }
 
     async fileBuffer(name) {
-        if (
-            this.memory.has(
-                name
-            )
-        ) {
-            return this.memory.get(
-                name
-            );
+        if (this.memory.has(name)) {
+            return this.memory.get(name);
         }
 
-        const url = this.url(
-                name
-            );
-
+        const url = this.url(name);
         const cache = await this._cache();
 
         if (cache) {
-            const hit = await cache.match(
-                    url
-                );
+            const hit = await cache.match(url);
 
             if (hit) {
                 const buffer = await hit.arrayBuffer();
 
-                this.memory.set(
-                    name,
-                    buffer
-                );
+                this.memory.set(name, buffer);
 
                 return buffer;
             }
         }
 
         const response = await fetch(
-                url,
-                {
-                    cache:
-                        "no-store",
-                }
-            );
+            url,
+            {
+                cache: "no-store",
+            }
+        );
 
         if (!response.ok) {
             throw new Error(
@@ -1087,18 +720,10 @@ class RemoteShardStore {
 
         const buffer = await response.arrayBuffer();
 
-        this.memory.set(
-            name,
-            buffer
-        );
+        this.memory.set(name, buffer);
 
         if (cache) {
-            await cache.put(
-                url,
-                new Response(
-                    buffer.slice(0)
-                )
-            );
+            await cache.put(url, new Response(buffer.slice(0)));
         }
 
         return buffer;
@@ -1106,57 +731,33 @@ class RemoteShardStore {
 }
 
 export class RemoteW4PleShardBundle extends W4PleValidationBundle {
-    constructor(
-        manifest,
-        pleBaseUrl
-    ) {
+    constructor(manifest, pleBaseUrl) {
         super(
             {
                 token_ids: [],
-                width:
-                    manifest.width,
-                group_size:
-                    manifest.quantization
-                        .group_size,
-                packed_row_bytes:
-                    manifest.layout
-                        .packed_row_bytes,
-                scale_row_bytes:
-                    manifest.layout
-                        .scale_row_bytes,
+                width: manifest.width,
+                group_size: manifest.quantization.group_size,
+                packed_row_bytes: manifest.layout.packed_row_bytes,
+                scale_row_bytes: manifest.layout.scale_row_bytes,
             },
             null,
             null
         );
 
         this.manifest = manifest;
-
-        this.vocabSize = Number(
-                manifest.vocab_size
-            );
-
-        this.rowsPerShard = Number(
-                manifest.layout
-                    .rows_per_shard
-            );
-
+        this.vocabSize = Number(manifest.vocab_size);
+        this.rowsPerShard = Number(manifest.layout.rows_per_shard);
         this.shards = manifest.shards;
-
-        this.store = new RemoteShardStore(
-                pleBaseUrl
-            );
+        this.store = new RemoteShardStore(pleBaseUrl);
     }
 
-    static async fromUrl(
-        manifestUrl
-    ) {
+    static async fromUrl(manifestUrl) {
         const response = await fetch(
-                manifestUrl,
-                {
-                    cache:
-                        "no-store",
-                }
-            );
+            manifestUrl,
+            {
+                cache: "no-store",
+            }
+        );
 
         if (!response.ok) {
             throw new Error(
@@ -1166,42 +767,21 @@ export class RemoteW4PleShardBundle extends W4PleValidationBundle {
 
         const manifest = await response.json();
 
-        if (
-            manifest.format !==
-            "gemma4-ple-w4-sharded-v1"
-            ||
-            manifest.complete !==
-            true
-        ) {
+        if (manifest.format !== "gemma4-ple-w4-sharded-v1" || manifest.complete !== true) {
             throw new Error(
                 `Unexpected/incomplete PLE manifest: ${manifest.format}`
             );
         }
 
-        const base = manifestUrl.replace(
-                /\/[^/]*$/,
-                ""
-            );
+        const base = manifestUrl.replace(/\/[^/]*$/, "");
 
-        return new RemoteW4PleShardBundle(
-            manifest,
-            base
-        );
+        return new RemoteW4PleShardBundle(manifest, base);
     }
 
     _location(tokenId) {
-        const id = Number(
-                tokenId
-            );
-
-        const shardIndex = Math.floor(
-                id /
-                this.rowsPerShard
-            );
-
-        const shard = this.shards[
-                shardIndex
-            ];
+        const id = Number(tokenId);
+        const shardIndex = Math.floor(id / this.rowsPerShard);
+        const shard = this.shards[shardIndex];
 
         if (!shard) {
             throw new Error(
@@ -1211,267 +791,123 @@ export class RemoteW4PleShardBundle extends W4PleValidationBundle {
 
         return {
             shard,
-            localRow:
-                id -
-                Number(
-                    shard.row_start
-                ),
+            localRow: id - Number(shard.row_start),
         };
     }
 
-    async rowsToGpu(
-        device,
-        ids
-    ) {
-        const packedBytes = new Uint8Array(
-                ids.length *
-                this.packedRowBytes
-            );
-
-        const scaleBytes = new Uint8Array(
-                ids.length *
-                this.scaleRowBytes
-            );
+    async rowsToGpu(device, ids) {
+        const packedBytes = new Uint8Array(ids.length * this.packedRowBytes);
+        const scaleBytes = new Uint8Array(ids.length * this.scaleRowBytes);
 
         await Promise.all(
-            ids.map(
-                async (
-                    id,
-                    outputRow
-                ) => {
-                    const {
-                        shard,
-                        localRow,
-                    } = this._location(
-                            id
-                        );
+            ids.map(async (id, outputRow) => {
+                const {
+                    shard,
+                    localRow,
+                } = this._location(id);
 
-                    const buffer = await this.store
-                            .fileBuffer(
-                                shard.file
-                            );
+                const buffer = await this.store.fileBuffer(shard.file);
+                const packedStart = Number(shard.packed_offset) + localRow * this.packedRowBytes;
+                const scaleStart = Number(shard.scales_offset) + localRow * this.scaleRowBytes;
 
-                    const packedStart = Number(
-                            shard.packed_offset
-                        ) +
-                        localRow *
-                        this.packedRowBytes;
+                packedBytes.set(
+                    new Uint8Array(buffer, packedStart, this.packedRowBytes),
+                    outputRow * this.packedRowBytes
+                );
 
-                    const scaleStart = Number(
-                            shard.scales_offset
-                        ) +
-                        localRow *
-                        this.scaleRowBytes;
-
-                    packedBytes.set(
-                        new Uint8Array(
-                            buffer,
-                            packedStart,
-                            this.packedRowBytes
-                        ),
-                        outputRow *
-                        this.packedRowBytes
-                    );
-
-                    scaleBytes.set(
-                        new Uint8Array(
-                            buffer,
-                            scaleStart,
-                            this.scaleRowBytes
-                        ),
-                        outputRow *
-                        this.scaleRowBytes
-                    );
-                }
-            )
+                scaleBytes.set(
+                    new Uint8Array(buffer, scaleStart, this.scaleRowBytes),
+                    outputRow * this.scaleRowBytes
+                );
+            })
         );
 
-        return this._dequantRowsToGpu(
-            device,
-            ids.length,
-            packedBytes,
-            scaleBytes
-        );
+        return this._dequantRowsToGpu(device, ids.length, packedBytes, scaleBytes);
     }
 }
 
 export class CorePlusRemoteW4PleReader {
-    constructor(
-        coreReader,
-        pleBundle
-    ) {
+    constructor(coreReader, pleBundle) {
         this.coreReader = coreReader;
-
         this.pleBundle = pleBundle;
-
         this.pleName = "model.language_model.embed_tokens_per_layer.weight";
 
         this.header = {
             ...coreReader.header,
             [this.pleName]: {
-                dtype:
-                    "W4_SHARDED_REMOTE",
-                shape: [
-                    pleBundle.vocabSize,
-                    pleBundle.width,
-                ],
-                data_offsets: [
-                    0,
-                    0,
-                ],
+                dtype: "W4_SHARDED_REMOTE",
+                shape: [pleBundle.vocabSize, pleBundle.width],
+                data_offsets: [0, 0],
             },
         };
 
         this.metadata = coreReader.metadata;
     }
 
-    static async fromBaseUrl(
-        baseUrl
-    ) {
-        const root = baseUrl.replace(
-                /\/+$/,
-                ""
-            );
-
+    static async fromBaseUrl(baseUrl) {
+        const root = baseUrl.replace(/\/+$/, "");
         const coreUrl = `${root}/core.safetensors`;
-
         const manifestUrl = `${root}/ple-w4/manifest.json`;
 
-        const [
-            coreReader,
-            pleBundle,
-        ] = await Promise.all([
-                new SafeFileReader(
-                    new RemoteRangeBlob(
-                        coreUrl
-                    )
-                ).init(),
+        const [coreReader, pleBundle] = await Promise.all([
+            new SafeFileReader(new RemoteRangeBlob(coreUrl)).init(),
 
-                RemoteW4PleShardBundle
-                    .fromUrl(
-                        manifestUrl
-                    ),
-            ]);
+            RemoteW4PleShardBundle.fromUrl(manifestUrl),
+        ]);
 
-        return new CorePlusRemoteW4PleReader(
-            coreReader,
-            pleBundle
-        );
+        return new CorePlusRemoteW4PleReader(coreReader, pleBundle);
     }
 
     info(name) {
-        if (
-            name ===
-            this.pleName
-        ) {
-            return this.header[
-                name
-            ];
+        if (name === this.pleName) {
+            return this.header[name];
         }
 
-        return this.coreReader
-            .info(
-                name
-            );
+        return this.coreReader.info(name);
     }
 
     bytes(name) {
-        if (
-            name ===
-            this.pleName
-        ) {
-            throw new Error(
-                "Raw PLE is unavailable in remote W4 mode."
-            );
+        if (name === this.pleName) {
+            throw new Error("Raw PLE is unavailable in remote W4 mode.");
         }
 
-        return this.coreReader
-            .bytes(
-                name
-            );
+        return this.coreReader.bytes(name);
     }
 
-    rangeInTensor(
-        name,
-        offset,
-        length
-    ) {
-        if (
-            name ===
-            this.pleName
-        ) {
-            throw new Error(
-                "Raw PLE is unavailable in remote W4 mode."
-            );
+    rangeInTensor(name, offset, length) {
+        if (name === this.pleName) {
+            throw new Error("Raw PLE is unavailable in remote W4 mode.");
         }
 
-        return this.coreReader
-            .rangeInTensor(
-                name,
-                offset,
-                length
-            );
+        return this.coreReader.rangeInTensor(name, offset, length);
     }
 
     bf16(name) {
-        if (
-            name ===
-            this.pleName
-        ) {
-            throw new Error(
-                "BF16 PLE is unavailable in remote W4 mode."
-            );
+        if (name === this.pleName) {
+            throw new Error("BF16 PLE is unavailable in remote W4 mode.");
         }
 
-        return this.coreReader
-            .bf16(
-                name
-            );
+        return this.coreReader.bf16(name);
     }
 
     scalarBF16(name) {
-        return this.coreReader
-            .scalarBF16(
-                name
-            );
+        return this.coreReader.scalarBF16(name);
     }
 
-    bf16Rows(
-        name,
-        ids
-    ) {
-        if (
-            name ===
-            this.pleName
-        ) {
-            throw new Error(
-                "Use pleRowsToGpu() for quantized PLE."
-            );
+    bf16Rows(name, ids) {
+        if (name === this.pleName) {
+            throw new Error("Use pleRowsToGpu() for quantized PLE.");
         }
 
-        return this.coreReader
-            .bf16Rows(
-                name,
-                ids
-            );
+        return this.coreReader.bf16Rows(name, ids);
     }
 
-    pleRowsToGpu(
-        device,
-        ids
-    ) {
-        return this.pleBundle
-            .rowsToGpu(
-                device,
-                ids
-            );
+    pleRowsToGpu(device, ids) {
+        return this.pleBundle.rowsToGpu(device, ids);
     }
 
     sourceFor(name) {
-        return (
-            name ===
-            this.pleName
-        )
+        return (name === this.pleName)
             ? "remote PLE W4 shards + Browser Cache"
             : "remote core.safetensors range cache";
     }
@@ -1480,182 +916,86 @@ export class CorePlusRemoteW4PleReader {
 export class CorePlusW4PleShardReader {
     constructor(coreReader, pleBundle) {
         this.coreReader = coreReader;
-
         this.pleBundle = pleBundle;
-
         this.pleName = "model.language_model.embed_tokens_per_layer.weight";
 
         this.header = {
             ...coreReader.header,
         };
 
-        this.header[
-            this.pleName
-        ] = {
-            dtype:
-                "W4_SHARDED",
-            shape: [
-                pleBundle.vocabSize,
-                pleBundle.width,
-            ],
-            data_offsets: [
-                0,
-                0,
-            ],
+        this.header[this.pleName] = {
+            dtype: "W4_SHARDED",
+            shape: [pleBundle.vocabSize, pleBundle.width],
+            data_offsets: [0, 0],
         };
 
         this.metadata = coreReader.metadata;
     }
 
-    static async fromFiles(
-        coreFile,
-        manifestFile,
-        shardFiles
-    ) {
-        const [
-            coreReader,
-            pleBundle,
-        ] = await Promise.all([
-                new SafeFileReader(
-                    coreFile
-                ).init(),
+    static async fromFiles(coreFile, manifestFile, shardFiles) {
+        const [coreReader, pleBundle] = await Promise.all([
+            new SafeFileReader(coreFile).init(),
 
-                W4PleShardBundle
-                    .fromFiles(
-                        manifestFile,
-                        shardFiles
-                    ),
-            ]);
+            W4PleShardBundle.fromFiles(manifestFile, shardFiles),
+        ]);
 
-        if (
-            coreReader.header[
-                "model.language_model.embed_tokens_per_layer.weight"
-            ]
-        ) {
-            throw new Error(
-                "core.safetensors unexpectedly contains PLE."
-            );
+        if (coreReader.header["model.language_model.embed_tokens_per_layer.weight"]) {
+            throw new Error("core.safetensors unexpectedly contains PLE.");
         }
 
-        return new CorePlusW4PleShardReader(
-            coreReader,
-            pleBundle
-        );
+        return new CorePlusW4PleShardReader(coreReader, pleBundle);
     }
 
     info(name) {
-        if (
-            name ===
-            this.pleName
-        ) {
-            return this.header[
-                name
-            ];
+        if (name === this.pleName) {
+            return this.header[name];
         }
 
-        return this.coreReader.info(
-            name
-        );
+        return this.coreReader.info(name);
     }
 
     bytes(name) {
-        if (
-            name ===
-            this.pleName
-        ) {
-            throw new Error(
-                "Raw BF16 PLE is unavailable in W4 shard mode."
-            );
+        if (name === this.pleName) {
+            throw new Error("Raw BF16 PLE is unavailable in W4 shard mode.");
         }
 
-        return this.coreReader.bytes(
-            name
-        );
+        return this.coreReader.bytes(name);
     }
 
-    rangeInTensor(
-        name,
-        offset,
-        length
-    ) {
-        if (
-            name ===
-            this.pleName
-        ) {
-            throw new Error(
-                "Raw BF16 PLE is unavailable in W4 shard mode."
-            );
+    rangeInTensor(name, offset, length) {
+        if (name === this.pleName) {
+            throw new Error("Raw BF16 PLE is unavailable in W4 shard mode.");
         }
 
-        return this.coreReader
-            .rangeInTensor(
-                name,
-                offset,
-                length
-            );
+        return this.coreReader.rangeInTensor(name, offset, length);
     }
 
     bf16(name) {
-        if (
-            name ===
-            this.pleName
-        ) {
-            throw new Error(
-                "BF16 PLE is unavailable in W4 shard mode."
-            );
+        if (name === this.pleName) {
+            throw new Error("BF16 PLE is unavailable in W4 shard mode.");
         }
 
-        return this.coreReader
-            .bf16(
-                name
-            );
+        return this.coreReader.bf16(name);
     }
 
     scalarBF16(name) {
-        return this.coreReader
-            .scalarBF16(
-                name
-            );
+        return this.coreReader.scalarBF16(name);
     }
 
-    bf16Rows(
-        name,
-        ids
-    ) {
-        if (
-            name ===
-            this.pleName
-        ) {
-            throw new Error(
-                "Use pleRowsToGpu() for quantized PLE."
-            );
+    bf16Rows(name, ids) {
+        if (name === this.pleName) {
+            throw new Error("Use pleRowsToGpu() for quantized PLE.");
         }
 
-        return this.coreReader
-            .bf16Rows(
-                name,
-                ids
-            );
+        return this.coreReader.bf16Rows(name, ids);
     }
 
-    pleRowsToGpu(
-        device,
-        ids
-    ) {
-        return this.pleBundle
-            .rowsToGpu(
-                device,
-                ids
-            );
+    pleRowsToGpu(device, ids) {
+        return this.pleBundle.rowsToGpu(device, ids);
     }
 
     sourceFor(name) {
-        return (
-            name ===
-            this.pleName
-        )
-            ? "PLE W4 full shards"
-            : "core.safetensors";
+        return (name === this.pleName) ? "PLE W4 full shards" : "core.safetensors";
     }
 
 }
@@ -2063,19 +1403,13 @@ export function topK(logits,k=10) {
             continue;
         }
 
-        if(
-            a.length<k ||
-            value>a[a.length-1].value
-        ) {
+        if(a.length<k || value>a[a.length-1].value) {
             a.push({
                 tokenId:i,
                 value
             });
 
-            a.sort(
-                (x,y)=>
-                    y.value-x.value
-            );
+            a.sort((x,y)=> y.value-x.value);
 
             if(a.length>k) {
                 a.pop();
@@ -2084,9 +1418,7 @@ export function topK(logits,k=10) {
     }
 
     if(a.length===0) {
-        throw new Error(
-            "topK(): no finite logits."
-        );
+        throw new Error("topK(): no finite logits.");
     }
 
     return a;

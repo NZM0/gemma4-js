@@ -48,12 +48,7 @@ export class Gemma4Block {
         this.perLayerInputDim = perLayerInputDim;
         this.usePostAttentionNorm = usePostAttentionNorm;
         this.usePostFfwNorm = usePostFfwNorm;
-
-        this.preAttentionNorm = new RMSNorm(
-            hiddenSize,
-            rmsNormEps,
-            true
-        );
+        this.preAttentionNorm = new RMSNorm(hiddenSize, rmsNormEps, true);
 
         this.attention = new Gemma4Attention({
             hiddenSize,
@@ -69,42 +64,15 @@ export class Gemma4Block {
             rmsNormEps,
         });
 
-        this.postAttentionNorm = usePostAttentionNorm
-            ? new RMSNorm(hiddenSize, rmsNormEps, true)
-            : null;
-
-        this.preFfwNorm = new RMSNorm(
-            hiddenSize,
-            rmsNormEps,
-            true
-        );
-
-        this.mlp = new Gemma4MLP(
-            hiddenSize,
-            intermediateSize
-        );
-
-        this.postFfwNorm = usePostFfwNorm
-            ? new RMSNorm(hiddenSize, rmsNormEps, true)
-            : null;
+        this.postAttentionNorm = usePostAttentionNorm ? new RMSNorm(hiddenSize, rmsNormEps, true) : null;
+        this.preFfwNorm = new RMSNorm(hiddenSize, rmsNormEps, true);
+        this.mlp = new Gemma4MLP(hiddenSize, intermediateSize);
+        this.postFfwNorm = usePostFfwNorm ? new RMSNorm(hiddenSize, rmsNormEps, true) : null;
 
         if (perLayerInputDim > 0) {
-            this.perLayerInputGate = new Linear(
-                hiddenSize,
-                perLayerInputDim
-            );
-
-            this.perLayerProjection = new Linear(
-                perLayerInputDim,
-                hiddenSize
-            );
-
-            this.postPerLayerInputNorm = new RMSNorm(
-                hiddenSize,
-                rmsNormEps,
-                true
-            );
-
+            this.perLayerInputGate = new Linear(hiddenSize, perLayerInputDim);
+            this.perLayerProjection = new Linear(perLayerInputDim, hiddenSize);
+            this.postPerLayerInputNorm = new RMSNorm(hiddenSize, rmsNormEps, true);
             this.pleActivation = new GELUPytorchTanh();
         } else {
             this.perLayerInputGate = null;
@@ -159,10 +127,7 @@ export class Gemma4Block {
         perLayerInput = null,
         { returnIntermediates = false } = {}
     ) {
-        if (
-            x.shape.length !== 3 ||
-            x.shape[2] !== this.hiddenSize
-        ) {
+        if (x.shape.length !== 3 || x.shape[2] !== this.hiddenSize) {
             throw new Error(
                 `x must be [B,T,${this.hiddenSize}], got [${x.shape}]`
             );
@@ -170,21 +135,13 @@ export class Gemma4Block {
 
         if (this.perLayerInputDim > 0) {
             if (perLayerInput === null) {
-                throw new Error(
-                    "perLayerInput is required when perLayerInputDim > 0"
-                );
+                throw new Error("perLayerInput is required when perLayerInputDim > 0");
             }
 
-            if (
-                perLayerInput.shape.length !== 3 ||
-                perLayerInput.shape[0] !== x.shape[0] ||
-                perLayerInput.shape[1] !== x.shape[1] ||
-                perLayerInput.shape[2] !== this.perLayerInputDim
+            if (perLayerInput.shape.length !== 3 || perLayerInput.shape[0] !== x.shape[0] || perLayerInput.shape[1] !== x.shape[1] || perLayerInput.shape[2] !== this.perLayerInputDim
             ) {
                 throw new Error(
-                    `perLayerInput must be ` +
-                    `[${x.shape[0]},${x.shape[1]},${this.perLayerInputDim}], ` +
-                    `got [${perLayerInput.shape}]`
+                    `perLayerInput must be ` + `[${x.shape[0]},${x.shape[1]},${this.perLayerInputDim}], ` + `got [${perLayerInput.shape}]`
                 );
             }
         }
@@ -197,27 +154,19 @@ export class Gemma4Block {
 
         // Debug path: keep tensors so the caller can inspect them.
         // The caller must dispose every returned tensor.
-        return this._forwardWithKeptIntermediates(
-            x,
-            positions,
-            perLayerInput
-        );
+        return this._forwardWithKeptIntermediates(x, positions, perLayerInput);
     }
 
     _forward(x, positions, perLayerInput) {
         const preAttention = this.preAttentionNorm.apply(x);
 
-        let attentionOutput = this.attention.apply(
-            preAttention,
-            positions
-        );
+        let attentionOutput = this.attention.apply(preAttention, positions);
 
         if (this.postAttentionNorm) {
             attentionOutput = this.postAttentionNorm.apply(attentionOutput);
         }
 
         const attentionResidual = attentionOutput.add(x);
-
         const preFfw = this.preFfwNorm.apply(attentionResidual);
 
         let ffwOutput = this.mlp.apply(preFfw);
@@ -229,7 +178,6 @@ export class Gemma4Block {
         const ffwResidual = ffwOutput.add(attentionResidual);
 
         let output = ffwResidual;
-
         let pleGate = null;
         let pleActivated = null;
         let pleModulated = null;
@@ -238,15 +186,10 @@ export class Gemma4Block {
 
         if (this.perLayerInputDim > 0) {
             pleGate = this.perLayerInputGate.apply(output);
-
             pleActivated = this.pleActivation.apply(pleGate);
-
             pleModulated = pleActivated.mul(perLayerInput);
-
             pleProjected = this.perLayerProjection.apply(pleModulated);
-
             pleNormalized = this.postPerLayerInputNorm.apply(pleProjected);
-
             output = output.add(pleNormalized);
         }
 
@@ -268,14 +211,9 @@ export class Gemma4Block {
         };
     }
 
-    _forwardWithKeptIntermediates(
-        x,
-        positions,
-        perLayerInput
-    ) {
+    _forwardWithKeptIntermediates(x, positions, perLayerInput) {
         return tf.tidy(() => {
             const result = this._forward(x, positions, perLayerInput);
-
             const kept = {};
 
             for (const [name, tensor] of Object.entries(result)) {
@@ -304,186 +242,94 @@ export class Gemma4Block {
         } = {}
     ) {
         return tf.tidy(() => {
-            const preAttention = this.preAttentionNorm
-                    .apply(x);
+            const preAttention = this.preAttentionNorm.apply(x);
 
-            const attention = this.attention
-                    .applyWithSharedKv(
-                        preAttention,
-                        positions,
-                        {
-                            sharedKvState,
-                            captureKv,
-                        }
-                    );
+            const attention = this.attention.applyWithSharedKv(
+                preAttention,
+                positions,
+                {
+                    sharedKvState,
+                    captureKv,
+                }
+            );
 
             let attentionOutput = attention.output;
 
-            if (
-                this.postAttentionNorm
-            ) {
-                attentionOutput = this.postAttentionNorm
-                        .apply(
-                            attentionOutput
-                        );
+            if (this.postAttentionNorm) {
+                attentionOutput = this.postAttentionNorm.apply(attentionOutput);
             }
 
-            const attentionResidual = attentionOutput
-                    .add(x);
+            const attentionResidual = attentionOutput.add(x);
+            const preFfw = this.preFfwNorm.apply(attentionResidual);
 
-            const preFfw = this.preFfwNorm
-                    .apply(
-                        attentionResidual
-                    );
+            let ffwOutput = this.mlp.apply(preFfw);
 
-            let ffwOutput = this.mlp
-                    .apply(
-                        preFfw
-                    );
-
-            if (
-                this.postFfwNorm
-            ) {
-                ffwOutput = this.postFfwNorm
-                        .apply(
-                            ffwOutput
-                        );
+            if (this.postFfwNorm) {
+                ffwOutput = this.postFfwNorm.apply(ffwOutput);
             }
 
-            let output = ffwOutput
-                    .add(
-                        attentionResidual
-                    );
+            let output = ffwOutput.add(attentionResidual);
 
-            if (
-                this.perLayerInputDim > 0
-            ) {
-                const pleGate = this.perLayerInputGate
-                        .apply(
-                            output
-                        );
+            if (this.perLayerInputDim > 0) {
+                const pleGate = this.perLayerInputGate.apply(output);
+                const pleActivated = this.pleActivation.apply(pleGate);
+                const pleModulated = pleActivated.mul(perLayerInput);
+                const pleProjected = this.perLayerProjection.apply(pleModulated);
+                const pleNormalized = this.postPerLayerInputNorm.apply(pleProjected);
 
-                const pleActivated = this.pleActivation
-                        .apply(
-                            pleGate
-                        );
-
-                const pleModulated = pleActivated
-                        .mul(
-                            perLayerInput
-                        );
-
-                const pleProjected = this.perLayerProjection
-                        .apply(
-                            pleModulated
-                        );
-
-                const pleNormalized = this.postPerLayerInputNorm
-                        .apply(
-                            pleProjected
-                        );
-
-                output = output.add(
-                        pleNormalized
-                    );
+                output = output.add(pleNormalized);
             }
 
-            const scaledOutput = output.mul(
-                    this.skipScale
-                );
+            const scaledOutput = output.mul(this.skipScale);
 
             // TensorContainers returned from tf.tidy() survive automatically.
             // Avoid tf.keep() so the caller remains the sole lifetime owner.
             return {
-                output:
-                    scaledOutput,
-                kvState:
-                    attention.kvState,
+                output: scaledOutput,
+                kvState: attention.kvState,
             };
         });
     }
 
 
-    applyWithCache(
-        x,
-        positions,
-        perLayerInput,
-        pastCache = null
-    ) {
+    applyWithCache(x, positions, perLayerInput, pastCache = null) {
         return tf.tidy(() => {
             const preAttention = this.preAttentionNorm.apply(x);
-
-            const attentionResult = this.attention.applyWithCache(
-                    preAttention,
-                    positions,
-                    pastCache
-                );
+            const attentionResult = this.attention.applyWithCache(preAttention, positions, pastCache);
 
             let attentionOutput = attentionResult.output;
 
-            if (
-                this.postAttentionNorm
-            ) {
-                attentionOutput = this.postAttentionNorm.apply(
-                        attentionOutput
-                    );
+            if (this.postAttentionNorm) {
+                attentionOutput = this.postAttentionNorm.apply(attentionOutput);
             }
 
             const attentionResidual = attentionOutput.add(x);
-
-            const preFfw = this.preFfwNorm.apply(
-                    attentionResidual
-                );
+            const preFfw = this.preFfwNorm.apply(attentionResidual);
 
             let ffwOutput = this.mlp.apply(preFfw);
 
             if (this.postFfwNorm) {
-                ffwOutput = this.postFfwNorm.apply(
-                        ffwOutput
-                    );
+                ffwOutput = this.postFfwNorm.apply(ffwOutput);
             }
 
-            let output = ffwOutput.add(
-                    attentionResidual
-                );
+            let output = ffwOutput.add(attentionResidual);
 
-            if (
-                this.perLayerInputDim > 0
-            ) {
-                const pleGate = this.perLayerInputGate.apply(
-                        output
-                    );
+            if (this.perLayerInputDim > 0) {
+                const pleGate = this.perLayerInputGate.apply(output);
+                const pleActivated = this.pleActivation.apply(pleGate);
+                const pleModulated = pleActivated.mul(perLayerInput);
+                const pleProjected = this.perLayerProjection.apply(pleModulated);
+                const pleNormalized = this.postPerLayerInputNorm.apply(pleProjected);
 
-                const pleActivated = this.pleActivation.apply(
-                        pleGate
-                    );
-
-                const pleModulated = pleActivated.mul(
-                        perLayerInput
-                    );
-
-                const pleProjected = this.perLayerProjection.apply(
-                        pleModulated
-                    );
-
-                const pleNormalized = this.postPerLayerInputNorm.apply(
-                        pleProjected
-                    );
-
-                output = output.add(
-                        pleNormalized
-                    );
+                output = output.add(pleNormalized);
             }
 
-            output = output.mul(
-                    this.skipScale
-                );
+            output = output.mul(this.skipScale);
 
             return {
                 // Returned tensors automatically survive this tidy().
                 output,
-                cache:
-                    attentionResult.cache
+                cache: attentionResult.cache
             };
         });
     }

@@ -15,39 +15,21 @@ export class BrowserW4A16Reader {
 
     async open() {
         const prefix = await this.file
-                .slice(0, 8)
-                .arrayBuffer();
+            .slice(0, 8)
+            .arrayBuffer();
 
-        const headerLength = Number(
-                new DataView(prefix)
-                    .getBigUint64(
-                        0,
-                        true
-                    )
-            );
+        const headerLength = Number(new DataView(prefix).getBigUint64(0, true));
 
         const headerBuffer = await this.file
-                .slice(
-                    8,
-                    8 + headerLength
-                )
-                .arrayBuffer();
+            .slice(8, 8 + headerLength)
+            .arrayBuffer();
 
-        this.header = JSON.parse(
-                new TextDecoder(
-                    "utf-8"
-                )
-                    .decode(
-                        headerBuffer
-                    )
-            );
+        this.header = JSON.parse(new TextDecoder("utf-8").decode(headerBuffer));
 
         this.metadata = this.header.__metadata__
-            ??
-            {};
+            ?? {};
 
-        this.dataStart = 8 +
-            headerLength;
+        this.dataStart = 8 + headerLength;
 
         return this;
     }
@@ -70,18 +52,11 @@ export class BrowserW4A16Reader {
 
     async readBytes(name) {
         const info = this.info(name);
-
-        const [
-            start,
-            end
-        ] = info.data_offsets;
+        const [start, end] = info.data_offsets;
 
         const buffer = await this.file
-                .slice(
-                    this.dataStart + start,
-                    this.dataStart + end
-                )
-                .arrayBuffer();
+            .slice(this.dataStart + start, this.dataStart + end)
+            .arrayBuffer();
 
         return {
             buffer,
@@ -93,26 +68,17 @@ export class BrowserW4A16Reader {
         const {
             buffer,
             info,
-        } = await this.readBytes(
-                name
-            );
+        } = await this.readBytes(name);
 
-        if (
-            info.dtype !==
-            "I32"
-        ) {
+        if (info.dtype !== "I32") {
             throw new Error(
                 `${name}: expected I32, got ${info.dtype}`
             );
         }
 
         return {
-            values:
-                new Int32Array(
-                    buffer
-                ),
-            shape:
-                info.shape,
+            values: new Int32Array(buffer),
+            shape: info.shape,
         };
     }
 
@@ -120,44 +86,24 @@ export class BrowserW4A16Reader {
         const {
             buffer,
             info,
-        } = await this.readBytes(
-                name
-            );
+        } = await this.readBytes(name);
 
-        if (
-            info.dtype !==
-            "I64"
-        ) {
+        if (info.dtype !== "I64") {
             throw new Error(
                 `${name}: expected I64, got ${info.dtype}`
             );
         }
 
-        const view = new DataView(
-                buffer
-            );
-
+        const view = new DataView(buffer);
         const values = [];
 
-        for (
-            let offset = 0;
-            offset < buffer.byteLength;
-            offset += 8
-        ) {
-            values.push(
-                Number(
-                    view.getBigInt64(
-                        offset,
-                        true
-                    )
-                )
-            );
+        for (let offset = 0; offset < buffer.byteLength; offset += 8) {
+            values.push(Number(view.getBigInt64(offset, true)));
         }
 
         return {
             values,
-            shape:
-                info.shape,
+            shape: info.shape,
         };
     }
 
@@ -165,181 +111,82 @@ export class BrowserW4A16Reader {
         const {
             buffer,
             info,
-        } = await this.readBytes(
-                name
-            );
+        } = await this.readBytes(name);
 
-        if (
-            info.dtype !==
-            "BF16"
-        ) {
+        if (info.dtype !== "BF16") {
             throw new Error(
                 `${name}: expected BF16, got ${info.dtype}`
             );
         }
 
         return {
-            values:
-                this.decodeBF16(
-                    buffer
-                ),
-            shape:
-                info.shape,
+            values: this.decodeBF16(buffer),
+            shape: info.shape,
         };
     }
 
     decodeBF16(buffer) {
-        const view = new DataView(
-                buffer
-            );
+        const view = new DataView(buffer);
+        const values = new Float32Array(buffer.byteLength / 2);
 
-        const values = new Float32Array(
-                buffer.byteLength /
-                2
-            );
-
-        for (
-            let i = 0;
-            i < values.length;
-            i++
-        ) {
-            values[i] = bf16ToFloat32(
-                    view.getUint16(
-                        i * 2,
-                        true
-                    )
-                );
+        for (let i = 0; i < values.length; i++) {
+            values[i] = bf16ToFloat32(view.getUint16(i * 2, true));
         }
 
         return values;
     }
 
-    async readBF16Rows(
-        name,
-        ids
-    ) {
-        const info = this.info(
-                name
-            );
+    async readBF16Rows(name, ids) {
+        const info = this.info(name);
 
-        if (
-            info.dtype !==
-            "BF16"
-            ||
-            info.shape.length !==
-            2
-        ) {
+        if (info.dtype !== "BF16" || info.shape.length !== 2) {
             throw new Error(
                 `${name}: readBF16Rows expects BF16 rank-2 tensor.`
             );
         }
 
         const width = info.shape[1];
-
         const rowBytes = width * 2;
-
         const tensorStart = info.data_offsets[0];
+        const out = new Float32Array(ids.length * width);
 
-        const out = new Float32Array(
-                ids.length *
-                width
-            );
-
-        for (
-            let rowIndex = 0;
-            rowIndex < ids.length;
-            rowIndex++
-        ) {
-            const id = Number(
-                    ids[
-                        rowIndex
-                    ]
-                );
-
-            const begin = this.dataStart
-                +
-                tensorStart
-                +
-                id *
-                rowBytes;
+        for (let rowIndex = 0; rowIndex < ids.length; rowIndex++) {
+            const id = Number(ids[rowIndex]);
+            const begin = this.dataStart + tensorStart + id * rowBytes;
 
             const buffer = await this.file
-                    .slice(
-                        begin,
-                        begin + rowBytes
-                    )
-                    .arrayBuffer();
+                .slice(begin, begin + rowBytes)
+                .arrayBuffer();
 
-            out.set(
-                this.decodeBF16(
-                    buffer
-                ),
-                rowIndex *
-                width
-            );
+            out.set(this.decodeBF16(buffer), rowIndex * width);
         }
 
         return {
-            values:
-                out,
-            shape: [
-                ids.length,
-                width,
-            ],
+            values: out,
+            shape: [ids.length, width],
         };
     }
 
-    async readBF16RowRange(
-        name,
-        rowStart,
-        rowCount
-    ) {
-        const info = this.info(
-                name
-            );
+    async readBF16RowRange(name, rowStart, rowCount) {
+        const info = this.info(name);
 
-        if (
-            info.dtype !==
-            "BF16"
-            ||
-            info.shape.length !==
-            2
-        ) {
+        if (info.dtype !== "BF16" || info.shape.length !== 2) {
             throw new Error(
                 `${name}: readBF16RowRange expects BF16 rank-2 tensor.`
             );
         }
 
         const width = info.shape[1];
-
         const rowBytes = width * 2;
-
-        const begin = this.dataStart
-            +
-            info.data_offsets[0]
-            +
-            rowStart *
-            rowBytes;
+        const begin = this.dataStart + info.data_offsets[0] + rowStart * rowBytes;
 
         const buffer = await this.file
-                .slice(
-                    begin,
-                    begin
-                    +
-                    rowCount *
-                    rowBytes
-                )
-                .arrayBuffer();
+            .slice(begin, begin + rowCount * rowBytes)
+            .arrayBuffer();
 
         return {
-            values:
-                this.decodeBF16(
-                    buffer
-                ),
-            shape: [
-                rowCount,
-                width,
-            ],
+            values: this.decodeBF16(buffer),
+            shape: [rowCount, width],
         };
     }
 }

@@ -36,10 +36,7 @@ export function applyRoPE(
             .range(0, ropeAngles, 1, "float32")
             .mul(2.0 / headDim);
 
-        let timescaleRotary = tf.pow(
-            tf.scalar(baseFrequency, "float32"),
-            exponents
-        );
+        let timescaleRotary = tf.pow(tf.scalar(baseFrequency, "float32"), exponents);
 
         // Non-RoPE dimensions are represented by timescale = inf,
         // so position / inf = 0 => sin=0, cos=1.
@@ -62,9 +59,7 @@ export function applyRoPE(
         // [B, L, 1, halfDim]
         const sin = tf.sin(sinusoid).expandDims(2);
         const cos = tf.cos(sinusoid).expandDims(2);
-
         const [firstHalf, secondHalf] = tf.split(inputs, 2, -1);
-
         const firstPart = firstHalf.mul(cos).sub(secondHalf.mul(sin));
         const secondPart = secondHalf.mul(cos).add(firstHalf.mul(sin));
 

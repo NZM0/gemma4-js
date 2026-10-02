@@ -45,22 +45,9 @@ export class Gemma4MLP {
     constructor(hiddenSize, intermediateSize) {
         this.hiddenSize = hiddenSize;
         this.intermediateSize = intermediateSize;
-
-        this.gateProj = new Linear(
-            hiddenSize,
-            intermediateSize
-        );
-
-        this.upProj = new Linear(
-            hiddenSize,
-            intermediateSize
-        );
-
-        this.downProj = new Linear(
-            intermediateSize,
-            hiddenSize
-        );
-
+        this.gateProj = new Linear(hiddenSize, intermediateSize);
+        this.upProj = new Linear(hiddenSize, intermediateSize);
+        this.downProj = new Linear(intermediateSize, hiddenSize);
         this.activation = new GELUPytorchTanh();
     }
 
@@ -68,9 +55,7 @@ export class Gemma4MLP {
         return tf.tidy(() => {
             const gate = this.gateProj.apply(x);
             const up = this.upProj.apply(x);
-
             const activatedGate = this.activation.apply(gate);
-
             const hidden = activatedGate.mul(up);
 
             return this.downProj.apply(hidden);

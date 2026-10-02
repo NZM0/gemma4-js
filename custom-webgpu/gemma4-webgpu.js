@@ -41,17 +41,8 @@ function finiteStats(a) {
         sumSq += v * v;
     }
 
-    const mean = finite > 0
-            ? sum / finite
-            : NaN;
-
-    const variance = finite > 0
-            ? Math.max(
-                0,
-                sumSq / finite -
-                mean * mean
-            )
-            : NaN;
+    const mean = finite > 0 ? sum / finite : NaN;
+    const variance = finite > 0 ? Math.max(0, sumSq / finite - mean * mean) : NaN;
 
     return {
         count: a.length,
@@ -61,21 +52,13 @@ function finiteStats(a) {
         min: finite > 0 ? min : NaN,
         max: finite > 0 ? max : NaN,
         mean,
-        std:
-            Number.isFinite(variance)
-                ? Math.sqrt(variance)
-                : NaN,
+        std: Number.isFinite(variance) ? Math.sqrt(variance) : NaN,
     };
 }
 
 function formatStats(s) {
     return (
-        `finite=${s.finite}/${s.count} ` +
-        `nan=${s.nan} inf=${s.inf} ` +
-        `min=${Number(s.min).toExponential(3)} ` +
-        `max=${Number(s.max).toExponential(3)} ` +
-        `mean=${Number(s.mean).toExponential(3)} ` +
-        `std=${Number(s.std).toExponential(3)}`
+        `finite=${s.finite}/${s.count} ` + `nan=${s.nan} inf=${s.inf} ` + `min=${Number(s.min).toExponential(3)} ` + `max=${Number(s.max).toExponential(3)} ` + `mean=${Number(s.mean).toExponential(3)} ` + `std=${Number(s.std).toExponential(3)}`
     );
 }
 
@@ -213,31 +196,15 @@ export class Gemma4WebGPU {
     }
 
     async inputBuffers(tokenIds) {
-        const embedPromise = this.reader.bf16Rows(
-                "model.language_model.embed_tokens.weight",
-                tokenIds
-            );
+        const embedPromise = this.reader.bf16Rows("model.language_model.embed_tokens.weight", tokenIds);
 
         const pleGpuPromise = (typeof this.reader.pleRowsToGpu === "function")
-                ? this.reader.pleRowsToGpu(this.device,tokenIds)
-                : this.reader
-                    .bf16Rows(
-                        "model.language_model.embed_tokens_per_layer.weight",
-                        tokenIds
-                    )
-                    .then(
-                        ple => uploadF32(
-                            this.device,
-                            ple,
-                            U.STORAGE,
-                            "token-ple"
-                        )
-                    );
+            ? this.reader.pleRowsToGpu(this.device,tokenIds)
+            : this.reader
+                .bf16Rows("model.language_model.embed_tokens_per_layer.weight", tokenIds)
+                .then(ple => uploadF32(this.device, ple, U.STORAGE, "token-ple"));
 
-        const [embed,ple] = await Promise.all([
-                embedPromise,
-                pleGpuPromise,
-            ]);
+        const [embed,ple] = await Promise.all([embedPromise, pleGpuPromise]);
 
         return {
             embed:uploadF32(this.device,embed,U.STORAGE,"token-embed"),
@@ -254,21 +221,11 @@ export class Gemma4WebGPU {
             return buffer;
         };
 
-        const pre=probe(
-            "preAttention",
-            ops.rms(encoder,hidden,rows,HIDDEN,norm.input,garbage),
-            rows*HIDDEN
-        );
-        const qRaw=probe(
-            "qRaw",
-            ops.w4(encoder,linear.q,pre,rows,garbage),
-            rows*HEADS*s.headDim
-        );
+        const pre=probe("preAttention", ops.rms(encoder,hidden,rows,HIDDEN,norm.input,garbage), rows*HIDDEN);
+        const qRaw=probe("qRaw", ops.w4(encoder,linear.q,pre,rows,garbage), rows*HEADS*s.headDim);
         const q=probe(
             "qNormRoPE",
-            ops.normRope(
-                encoder,qRaw,rows,HEADS,s.headDim,startPos,norm.q,s.ropeProp,s.ropeBase,garbage
-            ),
+            ops.normRope(encoder,qRaw,rows,HEADS,s.headDim,startPos,norm.q,s.ropeProp,s.ropeBase,garbage),
             rows*HEADS*s.headDim
         );
         trash(qRaw);
@@ -278,28 +235,14 @@ export class Gemma4WebGPU {
             cache=this.shared[s.attentionType];
             if(!cache) throw new Error(`Missing shared ${s.attentionType} KV cache at layer ${layer.i}`);
         } else {
-            const kRaw=probe(
-                "kRaw",
-                ops.w4(encoder,linear.k,pre,rows,garbage),
-                rows*s.headDim
-            );
-            const vRaw=probe(
-                "vRaw",
-                ops.w4(encoder,linear.v,pre,rows,garbage),
-                rows*s.headDim
-            );
+            const kRaw=probe("kRaw", ops.w4(encoder,linear.k,pre,rows,garbage), rows*s.headDim);
+            const vRaw=probe("vRaw", ops.w4(encoder,linear.v,pre,rows,garbage), rows*s.headDim);
             const k=probe(
                 "kNormRoPE",
-                ops.normRope(
-                    encoder,kRaw,rows,1,s.headDim,startPos,norm.k,s.ropeProp,s.ropeBase,garbage
-                ),
+                ops.normRope(encoder,kRaw,rows,1,s.headDim,startPos,norm.k,s.ropeProp,s.ropeBase,garbage),
                 rows*s.headDim
             );
-            const v=probe(
-                "vNorm",
-                ops.rms(encoder,vRaw,rows,s.headDim,null,garbage),
-                rows*s.headDim
-            );
+            const v=probe("vNorm", ops.rms(encoder,vRaw,rows,s.headDim,null,garbage), rows*s.headDim);
             trash(kRaw);trash(vRaw);
             cache=this.caches[layer.i];
             cache.append(encoder,k,v,rows,startPos);
@@ -317,11 +260,7 @@ export class Gemma4WebGPU {
             rows*HEADS*s.headDim
         );
         trash(q);
-        const attnProj=probe(
-            "attentionOutput",
-            ops.w4(encoder,linear.o,context,rows,garbage),
-            rows*HIDDEN
-        ); trash(context);
+        const attnProj=probe("attentionOutput", ops.w4(encoder,linear.o,context,rows,garbage), rows*HIDDEN); trash(context);
         const attnNorm=probe(
             "postAttentionNorm",
             ops.rms(encoder,attnProj,rows,HIDDEN,norm.postAttn,garbage),
@@ -338,26 +277,14 @@ export class Gemma4WebGPU {
             ops.rms(encoder,attnResidual,rows,HIDDEN,norm.preFfw,garbage),
             rows*HIDDEN
         );
-        const gate=probe(
-            "mlpGate",
-            ops.w4(encoder,linear.gate,preFfw,rows,garbage),
-            rows*s.intermediate
-        );
-        const up=probe(
-            "mlpUp",
-            ops.w4(encoder,linear.up,preFfw,rows,garbage),
-            rows*s.intermediate
-        );trash(preFfw);
+        const gate=probe("mlpGate", ops.w4(encoder,linear.gate,preFfw,rows,garbage), rows*s.intermediate);
+        const up=probe("mlpUp", ops.w4(encoder,linear.up,preFfw,rows,garbage), rows*s.intermediate);trash(preFfw);
         const act=probe(
             "mlpActivated",
             ops.geluMul(encoder,gate,up,rows*s.intermediate,garbage),
             rows*s.intermediate
         );trash(gate);trash(up);
-        const down=probe(
-            "ffwOutput",
-            ops.w4(encoder,linear.down,act,rows,garbage),
-            rows*HIDDEN
-        );trash(act);
+        const down=probe("ffwOutput", ops.w4(encoder,linear.down,act,rows,garbage), rows*HIDDEN);trash(act);
         const ffwNorm=probe(
             "postFfwNorm",
             ops.rms(encoder,down,rows,HIDDEN,norm.postFfw,garbage),
@@ -369,26 +296,10 @@ export class Gemma4WebGPU {
             rows*HIDDEN
         );trash(attnResidual);trash(ffwNorm);
 
-        const pg=probe(
-            "pleGate",
-            ops.w4(encoder,linear.pleGate,ffwResidual,rows,garbage),
-            rows*PLE
-        );
-        const pm=probe(
-            "pleModulated",
-            ops.geluPle(encoder,pg,perLayer,rows,layer.i,garbage),
-            rows*PLE
-        );trash(pg);
-        const pp=probe(
-            "pleProjected",
-            ops.w4(encoder,linear.pleProj,pm,rows,garbage),
-            rows*HIDDEN
-        );trash(pm);
-        const pn=probe(
-            "pleNormalized",
-            ops.rms(encoder,pp,rows,HIDDEN,norm.postPle,garbage),
-            rows*HIDDEN
-        );trash(pp);
+        const pg=probe("pleGate", ops.w4(encoder,linear.pleGate,ffwResidual,rows,garbage), rows*PLE);
+        const pm=probe("pleModulated", ops.geluPle(encoder,pg,perLayer,rows,layer.i,garbage), rows*PLE);trash(pg);
+        const pp=probe("pleProjected", ops.w4(encoder,linear.pleProj,pm,rows,garbage), rows*HIDDEN);trash(pm);
+        const pn=probe("pleNormalized", ops.rms(encoder,pp,rows,HIDDEN,norm.postPle,garbage), rows*HIDDEN);trash(pp);
         const out=probe(
             "output",
             ops.addScale(encoder,ffwResidual,pn,nHidden,layer.skipScale,garbage),
@@ -406,28 +317,15 @@ export class Gemma4WebGPU {
         let garbage=[];
         let hidden=this.ops.scale(encoder,inp.embed,rows*HIDDEN,Math.sqrt(HIDDEN),garbage);
         const projected=this.ops.w4(encoder,this.topProj,hidden,rows,garbage);
-        const projectedScaled=this.ops.scale(
-            encoder,projected,rows*35*PLE,1/Math.sqrt(HIDDEN),garbage
-        );
-        const perLayer=this.ops.pleMix(
-            encoder,projectedScaled,this.pleNorm,inp.ple,rows,garbage
-        );
+        const projectedScaled=this.ops.scale(encoder,projected,rows*35*PLE,1/Math.sqrt(HIDDEN),garbage);
+        const perLayer=this.ops.pleMix(encoder,projectedScaled,this.pleNorm,inp.ple,rows,garbage);
         garbage.push(inp.embed,inp.ple,projected,projectedScaled);
         this.device.queue.submit([encoder.finish()]);
         for(const b of garbage)b.destroy();
 
         if (diagnostic) {
-            const hiddenProbe = await readF32(
-                    this.device,
-                    hidden,
-                    rows * HIDDEN
-                );
-
-            const pleProbe = await readF32(
-                    this.device,
-                    perLayer,
-                    rows * 35 * PLE
-                );
+            const hiddenProbe = await readF32(this.device, hidden, rows * HIDDEN);
+            const pleProbe = await readF32(this.device, perLayer, rows * 35 * PLE);
 
             this.log(
                 `[diag top hidden] ${formatStats(finiteStats(hiddenProbe))}`
@@ -443,9 +341,7 @@ export class Gemma4WebGPU {
             encoder=this.device.createCommandEncoder();
             garbage=[];
 
-            const stageProbes = diagnostic && layer.i === 1
-                    ? []
-                    : null;
+            const stageProbes = diagnostic && layer.i === 1 ? [] : null;
 
             const next=this.encodeLayer(
                 encoder,
@@ -465,24 +361,14 @@ export class Gemma4WebGPU {
                 this.log("[diag layer 01 stages]");
 
                 for (const p of stageProbes) {
-                    const values = await readF32(
-                            this.device,
-                            p.buffer,
-                            p.count
-                        );
-
-                    const stats = finiteStats(
-                            values
-                        );
+                    const values = await readF32(this.device, p.buffer, p.count);
+                    const stats = finiteStats(values);
 
                     this.log(
                         `  ${p.name.padEnd(20)} ${formatStats(stats)}`
                     );
 
-                    if (
-                        stats.nan > 0 ||
-                        stats.inf > 0
-                    ) {
+                    if (stats.nan > 0 || stats.inf > 0) {
                         for(const b of garbage)b.destroy();
 
                         throw new Error(
@@ -495,25 +381,14 @@ export class Gemma4WebGPU {
             for(const b of garbage)b.destroy();
 
             if (diagnostic) {
-                const hiddenValues = await readF32(
-                        this.device,
-                        hidden,
-                        rows * HIDDEN
-                    );
-
-                const stats = finiteStats(
-                        hiddenValues
-                    );
+                const hiddenValues = await readF32(this.device, hidden, rows * HIDDEN);
+                const stats = finiteStats(hiddenValues);
 
                 this.log(
-                    `[diag layer ${String(layer.i).padStart(2,"0")}] ` +
-                    formatStats(stats)
+                    `[diag layer ${String(layer.i).padStart(2,"0")}] ` + formatStats(stats)
                 );
 
-                if (
-                    stats.nan > 0 ||
-                    stats.inf > 0
-                ) {
+                if (stats.nan > 0 || stats.inf > 0) {
                     throw new Error(
                         `First non-finite hidden state detected at layer ${layer.i}.`
                     );
@@ -548,28 +423,16 @@ export class Gemma4WebGPU {
         logits.destroy();
 
         if (diagnostic) {
-            const stats = finiteStats(
-                    out
-                );
+            const stats = finiteStats(out);
 
             this.log(
                 `[diag logits] ${formatStats(stats)}`
             );
 
             this.log(
-                `[diag logits first 16] ` +
-                Array.from(
-                    out.slice(
-                        0,
-                        16
-                    )
-                )
-                .map(
-                    x =>
-                        Number(x)
-                            .toExponential(4)
-                )
-                .join(" ")
+                `[diag logits first 16] ` + Array.from(out.slice(0, 16))
+                    .map(x => Number(x).toExponential(4))
+                    .join(" ")
             );
         }
 
@@ -583,57 +446,36 @@ export class Gemma4WebGPU {
         } = {}
     ) {
         const h = await this.forward(
-                tokenIds,
-                startPos,
-                {
-                    diagnostic,
-                }
-            );
+            tokenIds,
+            startPos,
+            {
+                diagnostic,
+            }
+        );
 
         const l = await this.logits(
-                h,
-                {
-                    diagnostic,
-                }
-            );
+            h,
+            {
+                diagnostic,
+            }
+        );
 
         h.destroy();
 
-        const finiteLogits = l.reduce(
-                (
-                    n,
-                    v
-                ) =>
-                    n +
-                    (
-                        Number.isFinite(v)
-                            ? 1
-                            : 0
-                    ),
-                0
-            );
+        const finiteLogits = l.reduce((n, v) => n + (Number.isFinite(v) ? 1 : 0), 0);
 
-        if (
-            finiteLogits !==
-            l.length
-        ) {
+        if (finiteLogits !== l.length) {
             throw new Error(
                 `Non-finite logits: ${l.length - finiteLogits}/${l.length}`
             );
         }
 
-        const top10 = topK(
-                l,
-                10
-            );
+        const top10 = topK(l, 10);
 
         return {
-            logits:
-                l,
+            logits: l,
             top10,
-            nextTokenId:
-                top10[0]
-                    .tokenId,
+            nextTokenId: top10[0].tokenId,
         };
     }
 

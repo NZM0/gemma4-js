@@ -51,10 +51,8 @@ export function dequantizeOfficialW4A16Rows(
     packedValues,
     scales,
     {
-        outDim,
-        inDim,
-        rowStart,
-        rowCount,
+        outDim, inDim,
+        rowStart, rowCount,
         groupSize = 32,
     }
 ) {

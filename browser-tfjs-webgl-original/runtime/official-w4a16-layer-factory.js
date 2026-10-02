@@ -8,12 +8,9 @@ export function getOfficialW4A16LayerSpec(layerIndex) {
     }
 
     const full = (layerIndex + 1) % 5 === 0;
-
     const firstKvSharedLayerIndex = 15;
     const isKvSharedLayer = layerIndex >= firstKvSharedLayerIndex;
-
-    const storeFullLengthKv = layerIndex === 13 ||
-        layerIndex === 14;
+    const storeFullLengthKv = layerIndex === 13 || layerIndex === 14;
 
     return {
         layerIndex,
@@ -38,16 +35,10 @@ export function createOfficialW4A16E2BBlock(
             numAttentionHeads: 8,
             numKeyValueHeads: 1,
             headDim: spec.headDim,
-            attentionType: spec.full
-                ? "full_attention"
-                : "sliding_attention",
+            attentionType: spec.full ? "full_attention" : "sliding_attention",
             slidingWindow: 512,
-            ropeTheta: spec.full
-                ? 1000000.0
-                : 10000.0,
-            ropeProportion: spec.full
-                ? 0.25
-                : 1.0,
+            ropeTheta: spec.full ? 1000000.0 : 10000.0,
+            ropeProportion: spec.full ? 0.25 : 1.0,
             ropeScaleFactor: 1.0,
             attnLogitSoftcap: null,
             rmsNormEps: 1e-6,

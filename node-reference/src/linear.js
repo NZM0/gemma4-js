@@ -12,11 +12,7 @@ export class Linear {
     }
 
     setWeight(weight) {
-        if (
-            weight.shape.length !== 2 ||
-            weight.shape[0] !== this.inDim ||
-            weight.shape[1] !== this.outDim
-        ) {
+        if (weight.shape.length !== 2 || weight.shape[0] !== this.inDim || weight.shape[1] !== this.outDim) {
             throw new Error(
                 `Linear weight must be [${this.inDim}, ${this.outDim}], got [${weight.shape}]`
             );

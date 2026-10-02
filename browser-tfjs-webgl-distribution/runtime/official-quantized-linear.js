@@ -7,8 +7,7 @@ import {
 
 export class OfficialW4A16Linear {
     constructor(
-        inDim,
-        outDim,
+        inDim, outDim,
         {
             groupSize = 32,
             outputChunkSize = 256,
@@ -29,8 +28,7 @@ export class OfficialW4A16Linear {
     }
 
     setOfficialWeights({
-        packedWeight,
-        scales,
+        packedWeight, scales,
     }) {
         if (!(packedWeight instanceof Int32Array)) {
             throw new Error("packedWeight must be Int32Array.");
@@ -56,7 +54,6 @@ export class OfficialW4A16Linear {
 
         this.denseWeight?.dispose();
         this.denseWeight = null;
-
         this.packedWeight = packedWeight;
         this.scales = scales;
         this.storageMode = "w4a16";
@@ -69,19 +66,14 @@ export class OfficialW4A16Linear {
             );
         }
 
-        if (
-            weight.shape[0] !== this.outDim ||
-            weight.shape[1] !== this.inDim
-        ) {
+        if (weight.shape[0] !== this.outDim || weight.shape[1] !== this.inDim) {
             throw new Error(
-                `Dense weight shape [${weight.shape}] != ` +
-                `[${this.outDim}, ${this.inDim}]`
+                `Dense weight shape [${weight.shape}] != ` + `[${this.outDim}, ${this.inDim}]`
             );
         }
 
         this.denseWeight?.dispose();
         this.denseWeight = weight.clone();
-
         this.packedWeight = null;
         this.scales = null;
         this.storageMode = "dense";
@@ -99,62 +91,35 @@ export class OfficialW4A16Linear {
         }
 
         if (this.storageMode === "dense") {
-            return tf.tidy(() =>
-                tf.matMul(
-                    x,
-                    this.denseWeight,
-                    false,
-                    true
-                )
-            );
+            return tf.tidy(() => tf.matMul(x, this.denseWeight, false, true));
         }
 
         const outputs = [];
 
         try {
-            for (
-                let rowStart = 0;
-                rowStart < this.outDim;
-                rowStart += this.outputChunkSize
-            ) {
-                const rowCount = Math.min(
-                    this.outputChunkSize,
-                    this.outDim - rowStart
-                );
+            for (let rowStart = 0; rowStart < this.outDim; rowStart += this.outputChunkSize) {
+                const rowCount = Math.min(this.outputChunkSize, this.outDim - rowStart);
 
                 const restored = dequantizeOfficialW4A16Rows(
-                    this.packedWeight,
-                    this.scales,
+                    this.packedWeight, this.scales,
                     {
                         outDim: this.outDim,
                         inDim: this.inDim,
-                        rowStart,
-                        rowCount,
+                        rowStart, rowCount,
                         groupSize: this.groupSize,
                     }
                 );
 
                 const yChunk = tf.tidy(() => {
-                    const w = tf.tensor2d(
-                        restored,
-                        [rowCount, this.inDim],
-                        "float32"
-                    );
+                    const w = tf.tensor2d(restored, [rowCount, this.inDim], "float32");
 
-                    return tf.matMul(
-                        x,
-                        w,
-                        false,
-                        true
-                    );
+                    return tf.matMul(x, w, false, true);
                 });
 
                 outputs.push(yChunk);
             }
 
-            return outputs.length === 1
-                ? outputs[0].clone()
-                : tf.concat(outputs, -1);
+            return outputs.length === 1 ? outputs[0].clone() : tf.concat(outputs, -1);
         } finally {
             for (const tensor of outputs) {
                 tensor.dispose();

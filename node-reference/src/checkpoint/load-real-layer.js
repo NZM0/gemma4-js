@@ -13,9 +13,7 @@ export function getRealLayerSpec(layerIndex) {
     // Layer 13 seeds sliding-attention KV and layer 14 seeds
     // full-attention KV. Layers 15..34 reuse those states.
     const isKvSharedLayer = layerIndex >= 15;
-
-    const captureSharedKv = layerIndex === 13 ||
-        layerIndex === 14;
+    const captureSharedKv = layerIndex === 13 || layerIndex === 14;
 
     return {
         full,
@@ -24,10 +22,7 @@ export function getRealLayerSpec(layerIndex) {
         intermediateSize,
         isKvSharedLayer,
         captureSharedKv,
-        attentionType:
-            full
-                ? "full_attention"
-                : "sliding_attention",
+        attentionType: full ? "full_attention" : "sliding_attention",
         root: `model.language_model.layers.${layerIndex}`,
     };
 }
@@ -91,10 +86,7 @@ export async function loadRealGemma4Layer(
     }
 ) {
     const ownsReader = reader === null;
-    const actualReader = reader ?? new NodeSafeTensorsReader(
-        safetensorsPath
-    );
-
+    const actualReader = reader ?? new NodeSafeTensorsReader(safetensorsPath);
     const s = getRealLayerSpec(layerIndex);
     const n = realLayerTensorNames(layerIndex);
 
@@ -110,9 +102,7 @@ export async function loadRealGemma4Layer(
         await setLinear(actualReader, block.attention.qProj, n.qProj, [s.qOut, 1536]);
         await setLinear(actualReader, block.attention.oProj, n.oProj, [1536, s.qOut]);
 
-        if (
-            !s.isKvSharedLayer
-        ) {
+        if (!s.isKvSharedLayer) {
             await setNorm(actualReader, block.attention.kNorm, n.kNorm, [s.headDim]);
             await setLinear(actualReader, block.attention.kProj, n.kProj, [s.headDim, 1536]);
             await setLinear(actualReader, block.attention.vProj, n.vProj, [s.headDim, 1536]);
