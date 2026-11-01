@@ -344,8 +344,7 @@ export class TfjsGemma4Backend {
         try {
             for (const item of this.lmHeadChunks) {
                 const out = tf.tidy(() => {
-                    const raw = tf.matMul(lastHidden, item.tensor, false, true)
-                        .div(Math.sqrt(1536));
+                    const raw = tf.matMul(lastHidden, item.tensor, false, true);
 
                     return raw
                         .div(30)

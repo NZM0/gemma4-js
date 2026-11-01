@@ -1370,7 +1370,7 @@ export class GPUOps {
     headChunk(encoder,x,weightChunk,out,outOffset,rows,garbage=null) {
         const p=paramBuffer(this.device,32,d=>{
             d.setUint32(0,1536,true);d.setUint32(4,rows,true);d.setUint32(8,outOffset,true);d.setUint32(12,rows,true);
-            d.setFloat32(16,1/Math.sqrt(1536),true);d.setFloat32(20,30,true);
+            d.setFloat32(16,1,true);d.setFloat32(20,30,true);
         });
         dispatch(encoder,this.p.head,bg(this.device,this.p.head,[x,weightChunk,out,p]),rows);this.track(garbage,p);
     }
